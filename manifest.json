@@ -1,8 +1,8 @@
 {
   "id": "/command/",
-  "name": "THEO Command — Planning, Tasks, Delegation, 100% Score & Prayer Times",
-  "short_name": "Command",
-  "description": "Standalone Executive PWA for 2x4 Bento Planning, Smart Tasks & Wait Timers, BHFIRMS Task Delegation, Daily 100-Point Discipline Score, and Shia Prayer Times.",
+  "name": "Planner — Planning, Tasks, Delegation, Score & Prayer Times",
+  "short_name": "Planner",
+  "description": "Standalone Executive & Personal Planner for 2x4 Bento Planning, Smart Tasks & Wait Timers, BHFIRMS Task Delegation, Daily 100-Point Discipline Score, and Shia Prayer Times.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

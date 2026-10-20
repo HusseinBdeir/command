@@ -1,14 +1,14 @@
-/* THEO Command — Standalone Executive PWA for Planning, Tasks, Delegation, 100% Score & Shia Prayer Times (Service Worker v8) */
-const CACHE_NAME = 'theo-command-v8';
+/* Planner — Standalone Executive & Personal PWA for Planning, Tasks, Delegation, 100% Score & Shia Prayer Times (Service Worker v9) */
+const CACHE_NAME = 'bhf-planner-v9';
 const NAV_CACHE = 'theo-cmd-nav-handoff-v1';
 const PENDING_NAV_URL = './__theo_cmd_pending_nav.json';
 const APP_SHELL = [
   './',
   './index.html',
-  './css/command.css?v=8',
-  './js/endpoints.js?v=8',
-  './js/app.js?v=8',
-  './manifest.json?v=8',
+  './css/command.css?v=9',
+  './js/endpoints.js?v=9',
+  './js/app.js?v=9',
+  './manifest.json?v=9',
   './icon.svg',
   './icon-180.png',
   './icon-192.png',
@@ -81,7 +81,7 @@ function buildCmdDeepLink(d) {
 function buildNotifOptions(d) {
   const nav = buildCmdDeepLink(d);
   return {
-    body: d.body || 'Tap to open THEO Command.',
+    body: d.body || 'Tap to open Planner.',
     icon: './icon-192.png',
     badge: './icon-192.png',
     tag: d.tag || 'theo-cmd-notif',
@@ -108,11 +108,11 @@ self.addEventListener('push', (event) => {
       d = event.data.json();
     } catch {
       try {
-        d = { title: 'THEO Command', body: event.data.text() };
+        d = { title: 'Planner', body: event.data.text() };
       } catch {}
     }
   }
-  const title = d.title || 'THEO Command';
+  const title = d.title || 'Planner';
   const opts = buildNotifOptions(d);
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
@@ -136,7 +136,7 @@ self.addEventListener('message', (event) => {
   if (m.type === 'show-notification') {
     const d = m.payload || {};
     event.waitUntil(
-      self.registration.showNotification(d.title || 'THEO Command', buildNotifOptions(d))
+      self.registration.showNotification(d.title || 'Planner', buildNotifOptions(d))
     );
   }
 });

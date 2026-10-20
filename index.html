@@ -6,16 +6,16 @@
   <meta name="theme-color" content="#F8F6F1" id="meta-theme-color">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Command">
-  <meta name="description" content="THEO Command — Standalone Executive PWA for Planning, Tasks & Wait Timers, BHFIRMS Delegation, Daily 100% Score & Shia Prayer Times.">
-  <title>THEO Command — Planning, Tasks, Delegation, Score &amp; Prayer Times</title>
-  <link rel="manifest" href="manifest.json?v=8">
+  <meta name="apple-mobile-web-app-title" content="Planner">
+  <meta name="description" content="Planner — Standalone Executive &amp; Personal PWA for Planning, Tasks &amp; Wait Timers, BHFIRMS Delegation, Daily 100% Score &amp; Shia Prayer Times.">
+  <title>Planner — Planning, Tasks, Delegation, Score &amp; Prayer Times</title>
+  <link rel="manifest" href="manifest.json?v=9">
   <link rel="icon" type="image/svg+xml" href="icon.svg">
   <link rel="apple-touch-icon" href="icon-180.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@700;800&family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/command.css?v=8">
+  <link rel="stylesheet" href="css/command.css?v=9">
   <script id="pre">
     (() => {
       try {
@@ -40,9 +40,9 @@
     <!-- Pinned 52px Top Discipline & Prayer HUD Ribbon -->
     <header class="hud-ribbon" id="hud-ribbon">
       <div class="hud-left">
-        <img src="icon.svg" alt="Command" class="hud-logo">
+        <img src="icon.svg" alt="Planner" class="hud-logo">
         <div class="hud-brand-copy">
-          <span class="hud-brand-name">COMMAND</span>
+          <span class="hud-brand-name">PLANNER</span>
         </div>
         <button type="button" class="hud-score-pill" id="hud-score-btn" title="Tap to open The Score (100-Point Discipline Ledger)">
           <span class="hud-shield">🛡️</span>
@@ -65,7 +65,7 @@
           <span class="sync-dot" id="sync-dot"></span>
           <span id="sync-label">Sync</span>
         </button>
-        <button type="button" class="hud-icon-btn" id="btn-push-toggle" title="Enable Lock-Screen Web Push Notifications for Command" aria-label="Push Notifications">
+        <button type="button" class="hud-icon-btn" id="btn-push-toggle" title="Enable Lock-Screen Web Push Notifications for Planner" aria-label="Push Notifications">
           <svg viewBox="0 0 20 20"><path d="M10 2.5a5 5 0 0 0-5 5v2.8l-1.6 2.4a.6.6 0 0 0 .5.9h12.2a.6.6 0 0 0 .5-.9L15 10.3V7.5a5 5 0 0 0-5-5zm-1.8 13a1.8 1.8 0 0 0 3.6 0" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"/></svg>
           <span class="push-dot" id="push-dot" hidden></span>
         </button>
@@ -164,7 +164,7 @@
   <!-- Toast Stack -->
   <div class="toast-stack" id="toast-stack" aria-live="polite"></div>
 
-  <script src="js/endpoints.js?v=8"></script>
-  <script src="js/app.js?v=8"></script>
+  <script src="js/endpoints.js?v=9"></script>
+  <script src="js/app.js?v=9"></script>
 </body>
 </html>

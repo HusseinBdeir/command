@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>THEO Command — Reset Cache</title>
+  <title>Planner — Reset Cache</title>
   <style>
     body {
       margin: 0;
@@ -29,7 +29,7 @@
 </head>
 <body>
   <div class="card">
-    <h1>Resetting THEO Command Cache…</h1>
+    <h1>Resetting Planner Cache…</h1>
     <p id="msg">Unregistering service workers and clearing local caches.</p>
   </div>
   <script>
@@ -44,7 +44,7 @@
           for (const k of keys) await caches.delete(k);
         }
       } catch (e) {}
-      document.getElementById('msg').textContent = 'Cache cleared. Redirecting to THEO Command…';
+      document.getElementById('msg').textContent = 'Cache cleared. Redirecting to Planner…';
       setTimeout(() => location.replace('./?reset=' + Date.now()), 500);
     })();
   </script>

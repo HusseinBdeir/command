@@ -1,5 +1,5 @@
 /* ============================================================================
-   THEO COMMAND — ZERO-SCROLL EXECUTIVE RADAR, DELEGATION & 100% DISCIPLINE PWA
+   PLANNER — ZERO-SCROLL EXECUTIVE RADAR, TASKS, DELEGATION, 100% SCORE & PRAYERS PWA
    ============================================================================ */
 (() => {
   'use strict';
@@ -1132,7 +1132,7 @@
         const vapid = await signVapid(sub.endpoint, expSec);
         const bodyB64 = await encryptWebPush(sub.keys, {
           title: `⏳ Timer Ready — ${item.title.slice(0, 42)}`,
-          body: `${item.subTag ? `${item.subTag} · ` : ''}Tap to verify or complete in THEO Command.`,
+          body: `${item.subTag ? `${item.subTag} · ` : ''}Tap to verify or complete in Planner.`,
           tag: `cmd-timer-${item.id}`,
           tab: 'tasks',
           taskId: item.id,
@@ -1500,7 +1500,7 @@
       } else if (navigator.serviceWorker) {
         navigator.serviceWorker.ready
           .then((reg) => {
-            reg.showNotification(payload.title || 'THEO Command', {
+            reg.showNotification(payload.title || 'Planner', {
               body: payload.body || '',
               icon: './icon-192.png',
               badge: './icon-192.png',
@@ -2203,7 +2203,7 @@
           if (newlyDelegatedItem && newlyDelegatedItem.id === rem.id && !pushOnDone) {
             pushOnDone = await buildPreSignedOwnerPush(
               `✅ ${rem.assigneeName || 'Team'} updated task`,
-              `${rem.title} — tap to verify in THEO Command`,
+              `${rem.title} — tap to verify in Planner`,
               'delegated',
               rem.id
             );
@@ -3716,7 +3716,7 @@
 
   async function subscribeCurrentBrowserPush() {
     if (!('Notification' in window) || !('serviceWorker' in navigator)) {
-      showToast('Add Command to your Home Screen first to enable iOS Web Push');
+      showToast('Add Planner to your Home Screen first to enable iOS Web Push');
       return false;
     }
     const perm = await Notification.requestPermission();
@@ -4283,7 +4283,7 @@
         }
       });
       navigator.serviceWorker
-        .register('./sw.js?v=8', { updateViaCache: 'none' })
+        .register('./sw.js?v=9', { updateViaCache: 'none' })
         .then(async (reg) => {
           reg.update().catch(() => {});
           if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
