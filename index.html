@@ -9,13 +9,13 @@
   <meta name="apple-mobile-web-app-title" content="Planner">
   <meta name="description" content="Planner — Standalone Executive &amp; Personal PWA for Planning, Tasks &amp; Wait Timers, BHFIRMS Delegation, Daily 100% Score &amp; Shia Prayer Times.">
   <title>Planner — Planning, Tasks, Delegation, Score &amp; Prayer Times</title>
-  <link rel="manifest" href="manifest.json?v=11">
-  <link rel="icon" type="image/svg+xml" href="icon.svg?v=11">
-  <link rel="apple-touch-icon" href="icon-180.png?v=11">
+  <link rel="manifest" href="manifest.json?v=12">
+  <link rel="icon" type="image/svg+xml" href="icon.svg?v=12">
+  <link rel="apple-touch-icon" href="icon-180.png?v=12">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@700;800&family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/command.css?v=11">
+  <link rel="stylesheet" href="css/command.css?v=12">
   <script id="pre">
     (() => {
       try {
@@ -40,7 +40,7 @@
     <!-- Pinned 52px Top Discipline & Prayer HUD Ribbon -->
     <header class="hud-ribbon" id="hud-ribbon">
       <div class="hud-left">
-        <img src="icon.svg?v=11" alt="Planner" class="hud-logo">
+        <img src="icon.svg?v=12" alt="Planner" class="hud-logo">
         <div class="hud-brand-copy">
           <span class="hud-brand-name">PLANNER</span>
         </div>
@@ -100,6 +100,18 @@
 
       <!-- Collapsible Live AI Auto-Classifier Drawer (Zero height when input is empty) -->
       <div class="live-advisor-drawer" id="live-advisor-drawer" hidden></div>
+
+      <!-- Compact 1-Tap Device Push Activation Banner (Only shown when this device has not armed Planner Push yet) -->
+      <div class="planner-push-banner" id="planner-push-banner" hidden>
+        <div class="planner-push-banner-copy">
+          <span>🔔</span>
+          <span><strong>Enable Planner Push on this device</strong> for Prayer Times, Tasks, Wait Timers &amp; Delegations</span>
+        </div>
+        <div class="planner-push-banner-actions">
+          <button type="button" class="planner-push-activate-btn" id="btn-banner-enable-push">Enable Push</button>
+          <button type="button" class="planner-push-center-btn" id="btn-banner-notif-center" title="Open Notification Control Center">⚙️</button>
+        </div>
+      </div>
     </section>
 
     <!-- Main Viewport Stage (5 Dedicated Pillars) -->
@@ -164,7 +176,7 @@
   <!-- Toast Stack -->
   <div class="toast-stack" id="toast-stack" aria-live="polite"></div>
 
-  <script src="js/endpoints.js?v=11"></script>
-  <script src="js/app.js?v=11"></script>
+  <script src="js/endpoints.js?v=12"></script>
+  <script src="js/app.js?v=12"></script>
 </body>
 </html>

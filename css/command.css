@@ -1785,3 +1785,73 @@ button {
   background: var(--brass-glow);
   font-weight: 700;
 }
+
+/* ============================================================================
+   PLANNER PUSH BANNER & NOTIFICATION CONTROL CENTER SHEET
+   ============================================================================ */
+.planner-push-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--brass-glow), var(--bg-card));
+  border: 1px solid var(--brass);
+  font-size: 11.5px;
+  color: var(--text-primary);
+}
+
+.planner-push-banner[hidden] {
+  display: none !important;
+}
+
+.planner-push-banner-copy {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  line-height: 1.3;
+}
+
+.planner-push-banner-actions {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+}
+
+.planner-push-activate-btn {
+  padding: 5px 10px;
+  border-radius: 7px;
+  background: var(--emerald);
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.planner-push-center-btn {
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+}
+
+.notif-channel-card {
+  padding: 10px 12px;
+  border-radius: 11px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+

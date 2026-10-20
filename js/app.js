@@ -10,6 +10,21 @@
   const CLOUD_PUSH_DEVS_KEY = 'theo_cmd_cloud_push_devs_v1';
   const PRAYER_SCHED_KEY = 'theo_cmd_scheduled_prayers_v1';
   const PRAYER_ALERTED_KEY = 'theo_cmd_alerted_prayers_v1';
+  const TASK_SCHED_KEY = 'theo_cmd_scheduled_tasks_v1';
+  const TASK_ALERTED_KEY = 'theo_cmd_alerted_tasks_v1';
+  const NOTIF_PREFS_KEY = 'theo_cmd_notif_prefs_v1';
+
+  const DEFAULT_NOTIF_PREFS = {
+    enabled: true,
+    prayers: true,
+    tasks: true,
+    timers: true,
+    delegations: true,
+    score: true,
+    morningHour: 8,
+    eveningHour: 21,
+    chime: true
+  };
 
   const SHIA_METHODS = [
     {
@@ -226,6 +241,7 @@
     dailyScores: {},
     teamRoster: [...DEFAULT_TEAM_ROSTER],
     prayerConfig: { ...DEFAULT_PRAYER_CONFIG },
+    notifPrefs: { ...DEFAULT_NOTIF_PREFS },
     cloudPushDevices: [],
     delegatedCloudMap: {},
     updatedAt: 0,
@@ -359,7 +375,33 @@
     };
   }
 
+  function normalizeNotifPrefs(raw) {
+    const base = { ...DEFAULT_NOTIF_PREFS };
+    if (!raw || typeof raw !== 'object') return base;
+    return {
+      enabled: raw.enabled !== false,
+      prayers: raw.prayers !== false,
+      tasks: raw.tasks !== false,
+      timers: raw.timers !== false,
+      delegations: raw.delegations !== false,
+      score: raw.score !== false,
+      morningHour: Number.isFinite(Number(raw.morningHour))
+        ? Math.max(5, Math.min(12, Math.round(Number(raw.morningHour))))
+        : 8,
+      eveningHour: Number.isFinite(Number(raw.eveningHour))
+        ? Math.max(17, Math.min(23, Math.round(Number(raw.eveningHour))))
+        : 21,
+      chime: raw.chime !== false
+    };
+  }
+
   function loadLocalState() {
+    try {
+      const savedPrefs = JSON.parse(localStorage.getItem(NOTIF_PREFS_KEY) || 'null');
+      if (savedPrefs && typeof savedPrefs === 'object') {
+        state.notifPrefs = normalizeNotifPrefs(savedPrefs);
+      }
+    } catch {}
     try {
       const savedDevs = JSON.parse(localStorage.getItem(CLOUD_PUSH_DEVS_KEY) || 'null');
       if (Array.isArray(savedDevs)) {
@@ -385,12 +427,17 @@
       state.dailyScores[iso] = normalizeDayScoreRecord(rec, iso);
     }
     state.prayerConfig = normalizePrayerConfig(state.prayerConfig);
+    state.notifPrefs = normalizeNotifPrefs(state.notifPrefs);
+    try {
+      localStorage.setItem(NOTIF_PREFS_KEY, JSON.stringify(state.notifPrefs));
+    } catch {}
     const payload = JSON.stringify({
       reminders: state.reminders,
       deletedIds: state.deletedIds.slice(-400),
       dailyScores: state.dailyScores,
       teamRoster: state.teamRoster,
       prayerConfig: state.prayerConfig,
+      notifPrefs: state.notifPrefs,
       updatedAt: state.updatedAt
     });
     try {
@@ -518,29 +565,86 @@
     return changed;
   }
 
+  function getAlertedTasksSet() {
+    try {
+      const arr = JSON.parse(localStorage.getItem(TASK_ALERTED_KEY) || '[]');
+      return new Set(Array.isArray(arr) ? arr : []);
+    } catch {
+      return new Set();
+    }
+  }
+
+  function saveAlertedTasksSet(set) {
+    try {
+      localStorage.setItem(TASK_ALERTED_KEY, JSON.stringify(Array.from(set).slice(-160)));
+    } catch {}
+  }
+
   function mergeDelegatedCloudStatus(delegatedMap) {
     if (!delegatedMap || typeof delegatedMap !== 'object') return;
     state.delegatedCloudMap = delegatedMap;
     let changed = false;
+    const alerted = getAlertedTasksSet();
+    let alertedChanged = false;
+
     for (const rem of state.reminders) {
       if (!rem || !rem.id) continue;
       const dTask = delegatedMap[rem.id];
       if (!dTask) continue;
       const staffTs = dTask.staffUpdatedAt ? new Date(dTask.staffUpdatedAt).getTime() : 0;
-      if (
-        dTask.delegationStatus &&
-        dTask.delegationStatus !== rem.delegationStatus &&
-        staffTs >= Number(rem.ownerStatusAt || 0)
-      ) {
-        rem.delegationStatus = dTask.delegationStatus;
-        rem.staffNote = dTask.staffNote || rem.staffNote || '';
-        rem.staffUpdatedAt = dTask.staffUpdatedAt || '';
+      const prevStatus = rem.delegationStatus || 'assigned';
+      const prevNote = rem.staffNote || '';
+      const nextStatus = dTask.delegationStatus || prevStatus;
+      const nextNote = dTask.staffNote || prevNote;
+      const statusChanged =
+        Boolean(dTask.delegationStatus) &&
+        nextStatus !== prevStatus &&
+        staffTs >= Number(rem.ownerStatusAt || 0);
+      const noteChanged = Boolean(dTask.staffNote) && nextNote !== prevNote;
+
+      if (statusChanged || noteChanged) {
+        rem.delegationStatus = nextStatus;
+        rem.staffNote = nextNote;
+        rem.staffUpdatedAt = dTask.staffUpdatedAt || rem.staffUpdatedAt || '';
         rem.updatedAt = Math.max(Number(rem.updatedAt || 0), staffTs || Date.now());
         changed = true;
-      } else if (dTask.staffNote && dTask.staffNote !== rem.staffNote) {
-        rem.staffNote = dTask.staffNote;
-        changed = true;
+
+        if (
+          state.notifPrefs.enabled !== false &&
+          state.notifPrefs.delegations !== false &&
+          (nextStatus === 'seen' || nextStatus === 'working' || nextStatus === 'done' || noteChanged) &&
+          staffTs > 0 &&
+          Date.now() - staffTs < 12 * 3600 * 1000
+        ) {
+          const alertKey = `del_${rem.id}_${nextStatus}_${staffTs || nextNote.slice(0, 16)}`;
+          if (!alerted.has(alertKey)) {
+            alerted.add(alertKey);
+            alertedChanged = true;
+            const who = rem.assigneeName || dTask.assigneeName || 'Team';
+            const stTitles = {
+              seen: `👀 ${who} saw task`,
+              working: `⚙️ ${who} is working on task`,
+              done: `✅ ${who} completed task`
+            };
+            const title = stTitles[nextStatus] || `👤 ${who} updated task`;
+            const body = `${rem.title}${nextNote ? ` · 💬 "${nextNote}"` : ''}`;
+            playTaskChime();
+            showToast(`${title}: ${rem.title.slice(0, 36)}`);
+            showLocalSwNotification({
+              title,
+              body,
+              tag: `cmd-del-live-${rem.id}-${nextStatus}`,
+              tab: 'delegated',
+              taskId: rem.id,
+              url: `./?tab=delegated&taskId=${encodeURIComponent(rem.id)}`,
+              requireInteraction: nextStatus === 'done'
+            });
+          }
+        }
       }
+    }
+    if (alertedChanged) {
+      saveAlertedTasksSet(alerted);
     }
     if (changed) {
       saveLocalState();
@@ -1075,6 +1179,17 @@
     };
   }
 
+  function isPlannerSubDevice(raw) {
+    if (!raw || typeof raw !== 'object') return false;
+    const app = String(raw.app || '').trim().toLowerCase();
+    const id = String(raw.id || '').trim().toLowerCase();
+    return app === 'command' || app === 'planner' || id.startsWith('cmd_') || id.startsWith('pln_');
+  }
+
+  function isThisDevicePushEnabled() {
+    return Boolean(normalizePushSubEntry(getSavedPushSub()));
+  }
+
   function getAllActivePushSubscriptions() {
     const byEndpoint = new Map();
     const localSub = normalizePushSubEntry(getSavedPushSub());
@@ -1083,77 +1198,313 @@
       byEndpoint.set(localSub.endpoint, localSub);
     }
     const cloudList = Array.isArray(state.cloudPushDevices) ? state.cloudPushDevices : [];
-    const cmdCloud = cloudList.filter((d) => d && d.app === 'command' && d.prefs?.enabled !== false);
-    const sourceList = cmdCloud.length > 0 ? cmdCloud : cloudList;
-    for (const d of sourceList) {
-      if (d && d.prefs && d.prefs.enabled === false) continue;
+    // Strictly filter to Planner ('command' / 'planner') subscriptions — NEVER fall back to THEO workbench devices
+    const cmdCloud = cloudList.filter((d) => isPlannerSubDevice(d) && d.prefs?.enabled !== false);
+    for (const d of cmdCloud) {
       const norm = normalizePushSubEntry(d);
       if (norm && !byEndpoint.has(norm.endpoint)) {
+        norm.app = 'command';
         byEndpoint.set(norm.endpoint, norm);
       }
     }
     return Array.from(byEndpoint.values());
   }
 
-  async function buildPreSignedOwnerPush(title, body, tab = 'delegated', taskId = '') {
+  function updatePushHudState() {
+    const thisArmed = isThisDevicePushEnabled();
+    const totalArmed = getAllActivePushSubscriptions().length;
+    const pDot = document.getElementById('push-dot');
+    if (pDot) {
+      pDot.hidden = totalArmed === 0;
+      pDot.style.background = thisArmed ? 'var(--emerald)' : 'var(--brass)';
+    }
+    const banner = document.getElementById('planner-push-banner');
+    if (banner) {
+      banner.hidden = thisArmed;
+    }
+    const pushBtn = document.getElementById('btn-push-toggle');
+    if (pushBtn) {
+      pushBtn.title = thisArmed
+        ? `🔔 Planner Push Active on this device (${totalArmed} Planner device${totalArmed === 1 ? '' : 's'} armed) — Tap for Notification Center`
+        : '🔕 Tap to enable Planner Lock-Screen Push Notifications on this device';
+    }
+  }
+
+  function buildTaskNotificationPayload(item) {
+    const isDel = Boolean(item.isDelegated || item.assigneeName || item.category === 'people');
+    const cat = String(item.category || 'work');
+    const isHold = Boolean(
+      item.matureAt > 0 ||
+        item.kind === 'wait' ||
+        cat === 'verify' ||
+        cat === 'shipping' ||
+        cat === 'payments'
+    );
+    let prefix = '⏰ Task Due';
+    if (cat === 'verify') prefix = '🔍 Verify on App';
+    else if (cat === 'shipping') prefix = '📦 Shipping Timer Ready';
+    else if (cat === 'payments') prefix = '💸 Payment Hold Matured';
+    else if (isDel) prefix = `👤 Follow-Up Due (${item.assigneeName || 'Team'})`;
+    else if (isHold) prefix = '⏳ Wait Timer Ready';
+    else if (item.recur && item.recur !== 'none') {
+      prefix = `🔁 ${item.recur === 'weekly' ? 'Weekly' : 'Daily'} Task Due`;
+    }
+
+    const targetTab = isDel ? 'delegated' : 'tasks';
+    const amtStr = Number(item.amount || 0) > 0 ? `$${fmtInt(item.amount)} · ` : '';
+    const subStr = item.subTag ? `${item.subTag} · ` : '';
+    return {
+      title: `${prefix} — ${String(item.title || 'Task').slice(0, 44)}`,
+      body: `${amtStr}${subStr}Tap to open in Planner.`,
+      tag: `cmd-timer-${item.id}`,
+      tab: targetTab,
+      taskId: item.id,
+      url: `./?tab=${targetTab}&taskId=${encodeURIComponent(item.id)}`,
+      requireInteraction: true
+    };
+  }
+
+  async function buildOwnerPushTargets(customExpSec = 0) {
+    const subs = getAllActivePushSubscriptions();
+    if (!subs.length) return [];
+    const expSec = customExpSec > 0 ? customExpSec : Math.floor(Date.now() / 1000) + 7 * 86400;
+    const out = [];
+    for (const sub of subs) {
+      if (!sub || !sub.endpoint || !sub.keys?.p256dh || !sub.keys?.auth) continue;
+      try {
+        const vapid = await signVapid(sub.endpoint, expSec);
+        out.push({
+          id: sub.id || 'cmd',
+          endpoint: sub.endpoint,
+          keys: sub.keys,
+          vapid,
+          expSec
+        });
+      } catch {}
+    }
+    return out;
+  }
+
+  async function buildPreSignedOwnerPush(title, body, tab = 'delegated', taskId = '', customExpSec = 0) {
     const subs = getAllActivePushSubscriptions();
     const sub = subs[0];
     if (!sub || !sub.endpoint || !sub.keys?.p256dh || !sub.keys?.auth) return null;
     try {
-      const vapid = await signVapid(sub.endpoint);
+      const expSec = customExpSec > 0 ? customExpSec : Math.floor(Date.now() / 1000) + 7 * 86400;
+      const vapid = await signVapid(sub.endpoint, expSec);
       const bodyB64 = await encryptWebPush(sub.keys, {
         title,
         body,
         tag: `cmd-del-${taskId || Date.now()}`,
         tab,
         taskId,
-        url: `./?tab=${encodeURIComponent(tab)}${taskId ? `&taskId=${encodeURIComponent(taskId)}` : ''}`
+        url: `./?tab=${encodeURIComponent(tab)}${taskId ? `&taskId=${encodeURIComponent(taskId)}` : ''}`,
+        requireInteraction: true
       });
       return {
         endpoint: sub.endpoint,
         vapid,
-        bodyB64
+        bodyB64,
+        expSec
       };
     } catch {
       return null;
     }
   }
 
-  async function scheduleCloudTimerPush(item) {
+  function loadLocalTaskSchedMap() {
+    try {
+      return JSON.parse(localStorage.getItem(TASK_SCHED_KEY) || '{}') || {};
+    } catch {
+      return {};
+    }
+  }
+
+  function saveLocalTaskSchedMap(map) {
+    try {
+      const entries = Object.entries(map || {}).slice(-180);
+      localStorage.setItem(TASK_SCHED_KEY, JSON.stringify(Object.fromEntries(entries)));
+    } catch {}
+  }
+
+  async function scheduleCloudTimerPush(item, cloudDocs = null, forceReschedule = false) {
+    if (!item || !item.id || item.completed || item.deleted) return false;
+    if (state.notifPrefs.enabled === false) return false;
+    const isHold = Boolean(
+      item.matureAt > 0 ||
+        item.kind === 'wait' ||
+        item.category === 'verify' ||
+        item.category === 'shipping' ||
+        item.category === 'payments'
+    );
+    if (isHold && state.notifPrefs.timers === false) return false;
+    if (!isHold && state.notifPrefs.tasks === false) return false;
+
     const subs = getAllActivePushSubscriptions();
-    if (!subs.length || !CLOUD_URL || !CLOUD_KEY) return;
+    if (!subs.length || !CLOUD_URL || !CLOUD_KEY) return false;
     const targetAt = Number(item.matureAt || item.dueAt || 0);
-    if (!targetAt) return;
+    if (!targetAt) return false;
     const delaySec = Math.round((targetAt - Date.now()) / 1000);
-    if (delaySec < 5 || delaySec > 25 * 86400) return;
+    if (delaySec < 5 || delaySec > 25 * 86400) return false;
+
     const expSec = Math.floor(targetAt / 1000) + 12 * 3600;
-    for (const sub of subs) {
+    const payload = buildTaskNotificationPayload(item);
+    const localMap = loadLocalTaskSchedMap();
+    let armedAny = false;
+
+    for (let i = 0; i < subs.length; i++) {
+      const sub = subs[i];
+      const devShort = String(sub.id || sub.endpoint.slice(-10))
+        .replace(/[^a-zA-Z0-9]/g, '')
+        .slice(-10);
+      const timerKey = i === 0 ? `timer_${item.id}` : `timer_${item.id}_${devShort}`;
+      const timerId = `${item.id}_${targetAt}_${devShort}`;
+      const alreadyInCloud = cloudDocs && cloudDocs[timerKey]?.id === timerId;
+      const alreadyInLocal = !forceReschedule && localMap[timerKey] === timerId;
+      if (alreadyInCloud || alreadyInLocal) {
+        localMap[timerKey] = timerId;
+        armedAny = true;
+        continue;
+      }
       try {
         const vapid = await signVapid(sub.endpoint, expSec);
-        const bodyB64 = await encryptWebPush(sub.keys, {
-          title: `⏳ Timer Ready — ${item.title.slice(0, 42)}`,
-          body: `${item.subTag ? `${item.subTag} · ` : ''}Tap to verify or complete in Planner.`,
-          tag: `cmd-timer-${item.id}`,
-          tab: 'tasks',
-          taskId: item.id,
-          url: `./?tab=tasks&taskId=${encodeURIComponent(item.id)}`
-        });
-        await fetch(CLOUD_URL, {
+        const bodyB64 = await encryptWebPush(sub.keys, payload);
+        const r = await fetch(CLOUD_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
           body: JSON.stringify({
             key: CLOUD_KEY,
             op: 'push_delay',
-            timerKey: `timer_${item.id}`,
-            timerId: `${item.id}_${targetAt}`,
+            timerKey,
+            timerId,
             delaySec,
             endpoint: sub.endpoint,
             vapid,
             bodyB64
           })
         });
+        if (r.ok) {
+          localMap[timerKey] = timerId;
+          armedAny = true;
+        }
       } catch {}
     }
+    saveLocalTaskSchedMap(localMap);
+    return armedAny;
+  }
+
+  async function cancelCloudTimerPush(itemId) {
+    if (!itemId) return;
+    const localMap = loadLocalTaskSchedMap();
+    const keysToCancel = [`timer_${itemId}`];
+    for (const k of Object.keys(localMap)) {
+      if (k === `timer_${itemId}` || k.startsWith(`timer_${itemId}_`)) {
+        if (!keysToCancel.includes(k)) keysToCancel.push(k);
+        delete localMap[k];
+      }
+    }
+    saveLocalTaskSchedMap(localMap);
+    if (!CLOUD_URL || !CLOUD_KEY) return;
+    const patch = {};
+    for (const k of keysToCancel) {
+      patch[k] = { id: 'cancelled', updatedAt: new Date().toISOString() };
+    }
+    try {
+      await fetch(CLOUD_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
+        body: JSON.stringify({
+          key: CLOUD_KEY,
+          op: 'patch',
+          patch
+        })
+      });
+    } catch {}
+  }
+
+  let taskScheduleInFlight = false;
+  async function scheduleAllActiveTaskCloudPushes(cloudDocs = null, forceReschedule = false) {
+    if (taskScheduleInFlight) return 0;
+    if (state.notifPrefs.enabled === false || !CLOUD_URL || !CLOUD_KEY) return 0;
+    const subs = getAllActivePushSubscriptions();
+    if (!subs.length) return 0;
+    taskScheduleInFlight = true;
+    let count = 0;
+    try {
+      const now = Date.now();
+      const candidates = state.reminders.filter((r) => {
+        if (!r || !r.id || r.completed || r.deleted) return false;
+        const t = Number(r.matureAt || r.dueAt || 0);
+        return t > now + 5000 && t - now <= 25 * 86400 * 1000;
+      });
+      for (const item of candidates.slice(0, 35)) {
+        const ok = await scheduleCloudTimerPush(item, cloudDocs, forceReschedule);
+        if (ok) count++;
+      }
+    } catch {} finally {
+      taskScheduleInFlight = false;
+    }
+    return count;
+  }
+
+  async function buildPlannerPushSlots(subEntry, daysAhead = 5) {
+    if (!subEntry || !subEntry.endpoint || !subEntry.keys?.p256dh || !subEntry.keys?.auth) {
+      return {};
+    }
+    if (state.notifPrefs.enabled === false || state.notifPrefs.score === false) {
+      return {};
+    }
+    const slots = {};
+    const mHour = Number(state.notifPrefs.morningHour || 8);
+    const eHour = Number(state.notifPrefs.eveningHour || 21);
+    const activeTasks = state.reminders.filter(
+      (r) => r && !r.completed && !r.deleted && r.category !== 'ideas' && r.category !== 'want_to_do'
+    );
+    const delCount = activeTasks.filter((r) => r.isDelegated || r.assigneeName).length;
+    const baseIso = todayIso();
+
+    for (let d = 0; d < daysAhead; d++) {
+      const iso = shiftIsoDate(baseIso, d);
+      const [yy, mm, dd] = iso.split('-').map(Number);
+      const pSched = computeShiaPrayerTimesForDate(iso);
+
+      // 1. Morning Executive & Prayer Brief (UTC slot matching Power Automate utcNow('yyyy-MM-ddTHH'))
+      const mLocal = new Date(yy, mm - 1, dd, mHour, 0, 0);
+      if (mLocal.getTime() > Date.now() - 3600000) {
+        const mUtcKey = mLocal.toISOString().slice(0, 13);
+        const mExp = Math.floor(mLocal.getTime() / 1000) + 18 * 3600;
+        try {
+          const vapid = await signVapid(subEntry.endpoint, mExp);
+          const bodyB64 = await encryptWebPush(subEntry.keys, {
+            title: `☀️ Morning Executive & Prayer Brief — Planner`,
+            body: `${activeTasks.length} active tasks (${delCount} delegated) · Fajr ${pSched.fajr.time24} · Dohor ${pSched.dhuhr.time24} · Maghrib ${pSched.maghrib.time24}`,
+            tag: `cmd-morning-${iso}`,
+            tab: 'planning',
+            url: './?tab=planning'
+          });
+          slots[mUtcKey] = { vapid, bodyB64 };
+        } catch {}
+      }
+
+      // 2. Evening 100% Discipline Scorecard Check-In
+      const eLocal = new Date(yy, mm - 1, dd, eHour, 0, 0);
+      if (eLocal.getTime() > Date.now() - 3600000) {
+        const eUtcKey = eLocal.toISOString().slice(0, 13);
+        const eExp = Math.floor(eLocal.getTime() / 1000) + 18 * 3600;
+        try {
+          const vapid = await signVapid(subEntry.endpoint, eExp);
+          const bodyB64 = await encryptWebPush(subEntry.keys, {
+            title: `🛡️ Evening 100% Score Check-In — Planner`,
+            body: "Log today's 5 Do's (+50%) & 5 Don'ts (50% baseline) and review tomorrow's timers.",
+            tag: `cmd-evening-${iso}`,
+            tab: 'score',
+            url: './?tab=score'
+          });
+          slots[eUtcKey] = { vapid, bodyB64 };
+        } catch {}
+      }
+    }
+    return slots;
   }
 
   /* ============================================================================
@@ -1468,6 +1819,7 @@
   function playPrayerChime() {
     if (typeof navigator !== 'undefined' && navigator.webdriver) return;
     if (state.prayerConfig && state.prayerConfig.chime === false) return;
+    if (state.notifPrefs && state.notifPrefs.chime === false) return;
     try {
       const ctx = ensureAudioUnlocked();
       if (!ctx) return;
@@ -1489,6 +1841,30 @@
     } catch {}
   }
 
+  function playTaskChime() {
+    if (typeof navigator !== 'undefined' && navigator.webdriver) return;
+    if (state.notifPrefs && state.notifPrefs.chime === false) return;
+    try {
+      const ctx = ensureAudioUnlocked();
+      if (!ctx) return;
+      const now = ctx.currentTime;
+      // Crisp executive 2-tone chime (C5 -> G5)
+      const notes = [523.25, 783.99];
+      notes.forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, now + i * 0.11);
+        gain.gain.setValueAtTime(0.08, now + i * 0.11);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + i * 0.11 + 0.35);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now + i * 0.11);
+        osc.stop(now + i * 0.11 + 0.38);
+      });
+    } catch {}
+  }
+
   function showLocalSwNotification(payload) {
     try {
       if (!('Notification' in window) || Notification.permission !== 'granted') return;
@@ -1500,16 +1876,19 @@
       } else if (navigator.serviceWorker) {
         navigator.serviceWorker.ready
           .then((reg) => {
+            const isPrayer = Boolean(payload.openPrayer || payload.tab === 'prayers');
             reg.showNotification(payload.title || 'Planner', {
               body: payload.body || '',
-              icon: './icon-192.png',
-              badge: './icon-192.png',
-              tag: payload.tag || 'theo-cmd-prayer',
+              icon: './icon-192.png?v=12',
+              badge: './icon-192.png?v=12',
+              tag: payload.tag || 'theo-cmd-notif',
               renotify: true,
+              requireInteraction: Boolean(payload.requireInteraction),
               data: {
-                url: payload.url || './?tab=prayers',
-                tab: payload.tab || 'prayers',
-                openPrayer: true
+                url: payload.url || (isPrayer ? './?tab=prayers' : './'),
+                tab: payload.tab || (isPrayer ? 'prayers' : 'planning'),
+                taskId: payload.taskId || '',
+                openPrayer: isPrayer
               }
             });
           })
@@ -1536,7 +1915,7 @@
   function checkLivePrayerNotificationsTick() {
     const cfg = normalizePrayerConfig(state.prayerConfig);
     renderPrayerHudPill();
-    if (!cfg.enabled) return;
+    if (!cfg.enabled || state.notifPrefs.enabled === false || state.notifPrefs.prayers === false) return;
 
     const nowMs = Date.now();
     const todayStr = todayIso();
@@ -1584,7 +1963,8 @@
           tag: `theo-prayer-${todayStr}-${p.id}`,
           tab: 'prayers',
           openPrayer: true,
-          url: './?tab=prayers'
+          url: './?tab=prayers',
+          requireInteraction: true
         });
       }
     }
@@ -1595,11 +1975,93 @@
     }
   }
 
+  function checkLiveTaskNotificationsTick() {
+    if (state.notifPrefs.enabled === false) return;
+    const nowMs = Date.now();
+    const alerted = getAlertedTasksSet();
+    let changed = false;
+
+    for (const item of state.reminders) {
+      if (!item || !item.id || item.completed || item.deleted) continue;
+      const targetAt = Number(item.matureAt || item.dueAt || 0);
+      if (!targetAt || nowMs < targetAt) continue;
+      if (nowMs - targetAt > 12 * 3600 * 1000) continue;
+
+      const isHold = Boolean(
+        item.matureAt > 0 ||
+          item.kind === 'wait' ||
+          item.category === 'verify' ||
+          item.category === 'shipping' ||
+          item.category === 'payments'
+      );
+      const isDel = Boolean(item.isDelegated || item.assigneeName || item.category === 'people');
+      if (isHold && state.notifPrefs.timers === false) continue;
+      if (isDel && state.notifPrefs.delegations === false) continue;
+      if (!isHold && !isDel && state.notifPrefs.tasks === false) continue;
+
+      const alertKey = `due_${item.id}_${targetAt}`;
+      if (alerted.has(alertKey)) continue;
+      alerted.add(alertKey);
+      changed = true;
+
+      const notif = buildTaskNotificationPayload(item);
+      playTaskChime();
+      showToast(notif.title);
+      showLocalSwNotification(notif);
+    }
+
+    // Also check daily 08:00 Morning Radar & 21:00 Evening 100% Score Check-In while app is open
+    if (state.notifPrefs.score !== false) {
+      const nowLocal = new Date(nowMs);
+      const iso = todayIso();
+      const hr = nowLocal.getHours();
+      const mn = nowLocal.getMinutes();
+      if (hr === Number(state.notifPrefs.morningHour || 8) && mn < 20) {
+        const mKey = `score_morning_${iso}`;
+        if (!alerted.has(mKey)) {
+          alerted.add(mKey);
+          changed = true;
+          const openTasks = state.reminders.filter(
+            (r) => r && !r.completed && !r.deleted && r.category !== 'ideas' && r.category !== 'want_to_do'
+          );
+          playTaskChime();
+          showLocalSwNotification({
+            title: '☀️ Morning Executive & Prayer Brief — Planner',
+            body: `${openTasks.length} active items on radar. Start at 50% discipline baseline.`,
+            tag: `cmd-morning-${iso}`,
+            tab: 'planning',
+            url: './?tab=planning'
+          });
+        }
+      } else if (hr === Number(state.notifPrefs.eveningHour || 21) && mn < 20) {
+        const eKey = `score_evening_${iso}`;
+        if (!alerted.has(eKey)) {
+          alerted.add(eKey);
+          changed = true;
+          const sc = computeDayScore(iso);
+          playTaskChime();
+          showLocalSwNotification({
+            title: `🛡️ Evening 100% Score Check-In (${sc.total}%)`,
+            body: "Tap to log today's 5 Do's & 5 Don'ts and review tomorrow's timers.",
+            tag: `cmd-evening-${iso}`,
+            tab: 'score',
+            url: './?tab=score'
+          });
+        }
+      }
+    }
+
+    if (changed) {
+      saveAlertedTasksSet(alerted);
+      renderAll();
+    }
+  }
+
   let prayerScheduleInFlight = false;
   async function scheduleUpcomingPrayerCloudPushes(cloudDocs = null, forceReschedule = false) {
     if (prayerScheduleInFlight) return 0;
     const cfg = normalizePrayerConfig(state.prayerConfig);
-    if (!cfg.enabled || !CLOUD_URL || !CLOUD_KEY) return 0;
+    if (!cfg.enabled || state.notifPrefs.enabled === false || state.notifPrefs.prayers === false || !CLOUD_URL || !CLOUD_KEY) return 0;
     const subs = getAllActivePushSubscriptions();
     if (!subs.length) return 0;
 
@@ -1739,30 +2201,69 @@
     return scheduledCount;
   }
 
-  async function sendTestPrayerPush() {
+  async function sendChannelTestPush(channel = 'prayers') {
     ensureAudioUnlocked();
-    playPrayerChime();
+    if (channel === 'prayers') {
+      playPrayerChime();
+    } else {
+      playTaskChime();
+    }
+
     const status = getNextShiaPrayerStatus();
     const s = status.todaySched;
     const nxt = status.nextPrayer;
     const cd = formatCountdown(nxt.epochMs, Date.now());
-    const msg = {
-      title: `🕌 Shia Prayer Alerts Active · ${s.locationName}`,
-      body: `Day ${s.dayOfYear}: Fajr ${s.fajr.time24} · Dohor ${s.dhuhr.time24} · Maghrib ${s.maghrib.time24}. Next: ${nxt.label} (${nxt.time24}) in ${cd}.`,
-      tag: `theo-prayer-test-${Date.now()}`,
-      tab: 'prayers',
-      openPrayer: true,
-      url: './?tab=prayers'
+    const sc = computeDayScore(todayIso());
+
+    const msgByChannel = {
+      prayers: {
+        title: `🕌 Shia Prayer Alerts Active · ${s.locationName}`,
+        body: `Day ${s.dayOfYear}: Fajr ${s.fajr.time24} · Dohor ${s.dhuhr.time24} · Maghrib ${s.maghrib.time24}. Next: ${nxt.label} (${nxt.time24}) in ${cd}.`,
+        tag: `theo-prayer-test-${Date.now()}`,
+        tab: 'prayers',
+        openPrayer: true,
+        url: './?tab=prayers'
+      },
+      tasks: {
+        title: `⏰ Task & Reminder Alerts Active — Planner`,
+        body: `All due tasks, recurring items & follow-ups notify directly on Planner.`,
+        tag: `cmd-test-tasks-${Date.now()}`,
+        tab: 'tasks',
+        url: './?tab=tasks'
+      },
+      timers: {
+        title: `⏳ Smart Wait Timers Active — Planner`,
+        body: `Verify on App (24h), Shipping countdowns (5d) & Payment holds are armed.`,
+        tag: `cmd-test-timers-${Date.now()}`,
+        tab: 'tasks',
+        url: './?tab=tasks'
+      },
+      delegations: {
+        title: `✅ BHFIRMS Delegation Alerts Active — Planner`,
+        body: `Instant lock-screen push when @Team marks a task 👀 Seen, ⚙️ Working, or ✅ Completed.`,
+        tag: `cmd-test-del-${Date.now()}`,
+        tab: 'delegated',
+        url: './?tab=delegated'
+      },
+      score: {
+        title: `🛡️ 100% Discipline Scorecard (${sc.total}% Today)`,
+        body: `Start 50% · Do's +${sc.doEarned}% · Don'ts -${sc.dontLost}%. Morning (08:00) & Evening (21:00) briefs armed.`,
+        tag: `cmd-test-score-${Date.now()}`,
+        tab: 'score',
+        url: './?tab=score'
+      }
     };
 
+    const msg = msgByChannel[channel] || msgByChannel.prayers;
     showLocalSwNotification(msg);
+
     const subs = getAllActivePushSubscriptions();
     if (!subs.length || !CLOUD_URL || !CLOUD_KEY) {
-      showToast('🔔 Local prayer alert shown! Tap "Enable Device Push" for lock-screen push.');
+      showToast('🔔 Local notification shown! Tap "Enable Push on This Device" for lock-screen push.');
       return;
     }
 
-    showToast('Sending lock-screen Prayer Web Push…');
+    showToast('Sending lock-screen Web Push via Planner…');
     let sentOk = 0;
     for (const sub of subs) {
       try {
@@ -1783,12 +2284,20 @@
         if (r.ok) sentOk++;
       } catch {}
     }
-    await scheduleUpcomingPrayerCloudPushes(null, true);
+    if (channel === 'prayers') {
+      await scheduleUpcomingPrayerCloudPushes(null, true);
+    } else {
+      await scheduleAllActiveTaskCloudPushes(null, true);
+    }
     showToast(
       sentOk > 0
-        ? `🕌 Prayer Web Push delivered (${sentOk} device${sentOk === 1 ? '' : 's'}) & 3-day schedule armed!`
+        ? `🔔 Planner Web Push delivered (${sentOk} device${sentOk === 1 ? '' : 's'}) & cloud timers armed!`
         : '🔔 Local notification displayed & schedule updated.'
     );
+  }
+
+  async function sendTestPrayerPush() {
+    return sendChannelTestPush('prayers');
   }
 
   function findNearestPresetCity(lat, lng) {
@@ -2163,18 +2672,22 @@
             (d) => (d?.endpoint || d?.subscription?.endpoint) === localSub.endpoint
           );
           const prevEntry = idx >= 0 ? existingItems[idx] : {};
+          const slots = await buildPlannerPushSlots(localSub, 5);
           const devEntry = {
             ...prevEntry,
             id:
-              prevEntry.id ||
-              `cmd_dev_${Math.abs(
-                Array.from(localSub.endpoint).reduce((h, c) => ((h << 5) - h + c.charCodeAt(0)) | 0, 0)
-              ).toString(36)}`,
+              prevEntry.id && String(prevEntry.id).startsWith('cmd_')
+                ? prevEntry.id
+                : `cmd_dev_${Math.abs(
+                    Array.from(localSub.endpoint).reduce((h, c) => ((h << 5) - h + c.charCodeAt(0)) | 0, 0)
+                  ).toString(36)}`,
             app: 'command',
             endpoint: localSub.endpoint,
             p256dh: localSub.p256dh,
             auth: localSub.auth,
             keys: localSub.keys,
+            prefs: normalizeNotifPrefs(state.notifPrefs),
+            slots,
             ua: String(navigator.userAgent || '').slice(0, 140),
             updatedAt: new Date().toISOString()
           };
@@ -2190,22 +2703,29 @@
           };
         }
 
-        const pDot = document.getElementById('push-dot');
-        if (pDot) pDot.hidden = getAllActivePushSubscriptions().length === 0;
+        updatePushHudState();
 
-        // Build updated delegated_tasks map so staff links work 100% serverlessly
+        // Build updated delegated_tasks map so staff links work 100% serverlessly with 7-day instant push targets
         const nextDelMap = { ...(docs.delegated_tasks || {}) };
+        const nowSec = Math.floor(Date.now() / 1000);
+        const ownerPushTargets = await buildOwnerPushTargets(nowSec + 7 * 86400);
         for (const rem of state.reminders) {
-          if (!rem || !rem.isDelegated || !rem.id) continue;
+          if (!rem || (!rem.isDelegated && !rem.assigneeName) || !rem.id) continue;
+          rem.isDelegated = true;
           if (!rem.taskToken) rem.taskToken = randomToken(12);
           const existing = nextDelMap[rem.id] || {};
           let pushOnDone = existing.pushOnDone || null;
-          if (newlyDelegatedItem && newlyDelegatedItem.id === rem.id && !pushOnDone) {
+          const needsFreshPreSigned =
+            !pushOnDone ||
+            (newlyDelegatedItem && newlyDelegatedItem.id === rem.id) ||
+            Number(pushOnDone.expSec || 0) < nowSec + 2 * 86400;
+          if (needsFreshPreSigned && state.notifPrefs.enabled !== false && state.notifPrefs.delegations !== false) {
             pushOnDone = await buildPreSignedOwnerPush(
-              `✅ ${rem.assigneeName || 'Team'} updated task`,
+              `✅ ${rem.assigneeName || 'Team'} completed task — Planner`,
               `${rem.title} — tap to verify in Planner`,
               'delegated',
-              rem.id
+              rem.id,
+              nowSec + 7 * 86400
             );
           }
           nextDelMap[rem.id] = {
@@ -2219,6 +2739,7 @@
             delegationStatus: rem.delegationStatus || existing.delegationStatus || 'sent',
             staffNote: rem.staffNote || existing.staffNote || '',
             staffUpdatedAt: rem.staffUpdatedAt || existing.staffUpdatedAt || '',
+            ownerPushTargets,
             pushOnDone
           };
         }
@@ -2230,6 +2751,7 @@
             dailyScores: state.dailyScores,
             teamRoster: state.teamRoster,
             prayerConfig: state.prayerConfig,
+            notifPrefs: state.notifPrefs,
             updatedAt: state.updatedAt
           },
           delegated_tasks: nextDelMap
@@ -2252,8 +2774,9 @@
         if (lbl) lbl.textContent = state.bridgeOrigin ? 'Bridge+Cloud' : 'Cloud Live';
         renderAll();
 
-        // Arm exact-second serverless Web Push notifications for upcoming Shia prayers (Fajr, Dohor, Maghrib)
+        // Arm exact-second serverless Web Push notifications for upcoming Shia prayers + all active Tasks, Reminders & Wait Timers
         scheduleUpcomingPrayerCloudPushes(docs).catch(() => {});
+        scheduleAllActiveTaskCloudPushes(docs).catch(() => {});
       }
     } catch {}
   }
@@ -3488,6 +4011,115 @@
     backdrop.hidden = false;
   }
 
+  function openNotificationCenterSheet() {
+    state.openClusterSheetId = '';
+    const backdrop = document.getElementById('sheet-backdrop');
+    const titleWrap = document.getElementById('sheet-title-wrap');
+    const body = document.getElementById('sheet-body');
+    if (!backdrop || !titleWrap || !body) return;
+
+    const prefs = normalizeNotifPrefs(state.notifPrefs);
+    const pCfg = normalizePrayerConfig(state.prayerConfig);
+    const thisArmed = isThisDevicePushEnabled();
+    const subs = getAllActivePushSubscriptions();
+    const activeTasksWithTimers = state.reminders.filter(
+      (r) => !r.completed && !r.deleted && Number(r.matureAt || r.dueAt || 0) > Date.now()
+    ).length;
+    const delegatedCount = state.reminders.filter(isDelegatedItem).length;
+
+    titleWrap.innerHTML = `
+      <div>
+        <strong style="font-size:15px">🔔 Planner Notification Control Center</strong>
+        <div style="font-size:11px;color:var(--text-muted)">All Prayer Times, Tasks, Smart Wait Timers, Delegations &amp; 100% Score alerts notify via Planner</div>
+      </div>
+    `;
+
+    const channels = [
+      {
+        id: 'prayers',
+        icon: '🕌',
+        title: `Shia Prayer Times (${pCfg.locationName})`,
+        sub: `Fajr, Dohor & Maghrib${pCfg.preRemindMin > 0 ? ` + ${pCfg.preRemindMin}m pre-reminder` : ''} · 3-day exact-second cloud schedule`,
+        enabled: prefs.enabled && prefs.prayers && pCfg.enabled
+      },
+      {
+        id: 'tasks',
+        icon: '⏰',
+        title: `Tasks & Due Reminders (${activeTasksWithTimers} scheduled)`,
+        sub: `Work/BU tasks, Family, People follow-ups & Daily/Weekly recurring tasks`,
+        enabled: prefs.enabled && prefs.tasks
+      },
+      {
+        id: 'timers',
+        icon: '⏳',
+        title: `Smart Wait Timers & Cooling-Off Holds`,
+        sub: `Verify on App (24h), Shipping countdowns (5d) & Payment cooling-off timers`,
+        enabled: prefs.enabled && prefs.timers
+      },
+      {
+        id: 'delegations',
+        icon: '👥',
+        title: `BHFIRMS Team Delegations (${delegatedCount} active)`,
+        sub: `Instant push when @Staff marks a task 👀 Seen, ⚙️ Working, or ✅ Completed + note`,
+        enabled: prefs.enabled && prefs.delegations
+      },
+      {
+        id: 'score',
+        icon: '🛡️',
+        title: `Daily 100% Discipline Scorecard & Briefs`,
+        sub: `08:00 Morning Executive & Prayer Brief + 21:00 Evening 100% Score Check-In`,
+        enabled: prefs.enabled && prefs.score
+      }
+    ];
+
+    body.innerHTML = `
+      <div class="prayer-loc-box" style="border-color:${thisArmed ? 'var(--emerald)' : 'var(--brass)'}">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+          <div>
+            <div style="font-size:13px;font-weight:800;color:${thisArmed ? 'var(--emerald)' : 'var(--brass-bright)'}">
+              ${thisArmed ? '✅ This Device is Subscribed to Planner Web Push' : '⚠️ This Device is Not Subscribed Yet'}
+            </div>
+            <div style="font-size:11px;color:var(--text-muted)">
+              Planner Devices Armed: <strong>${subs.length}</strong> · Sound Chime: <strong>${prefs.chime ? 'ON' : 'Muted'}</strong> · THEO Prayer Fallback: <strong>Disabled (Moved to Planner)</strong>
+            </div>
+          </div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <button type="button" class="t-act-btn primary" id="btn-notif-enable-device">
+              ${thisArmed ? '🔄 Refresh This Device Push' : '🔔 Enable Push on This Device'}
+            </button>
+            <button type="button" class="t-act-btn" id="btn-notif-rearm-all">⚡ Re-Arm All Timers</button>
+            <button type="button" class="t-act-btn" data-notif-toggle="chime">
+              ${prefs.chime ? '🔊 Chime: ON' : '🔇 Chime: OFF'}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="ticker-list">
+        ${channels
+          .map(
+            (ch) => `
+          <div class="notif-channel-card">
+            <div style="min-width:0;flex:1">
+              <div style="font-size:13px;font-weight:800">${ch.icon} ${esc(ch.title)}</div>
+              <div style="font-size:11px;color:var(--text-muted)">${esc(ch.sub)}</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+              <button type="button" class="mini-chip ${ch.enabled ? 'active' : ''}" data-notif-toggle="${ch.id}">
+                ${ch.enabled ? '🔔 ON' : '🔕 OFF'}
+              </button>
+              <button type="button" class="t-act-btn wa" data-notif-test="${ch.id}">📲 Test Push</button>
+            </div>
+          </div>
+        `
+          )
+          .join('')}
+      </div>
+    `;
+
+    backdrop.hidden = false;
+  }
+
   function updateDockBadges() {
     const active = state.reminders.filter((r) => !r.completed && !r.deleted);
     const delCnt = state.reminders.filter(isDelegatedItem).length;
@@ -3527,6 +4159,7 @@
     renderHudRibbon();
     renderLiveAdvisorDrawer();
     updateDockBadges();
+    updatePushHudState();
 
     for (const v of document.querySelectorAll('.cmd-view')) {
       const isMatch = v.getAttribute('data-view') === state.activeTab;
@@ -3699,9 +4332,47 @@
               });
               const uData = await uRes.json();
               if (uData?.ok && uData?.task) {
-                renderStaffTask(uData.task);
+                taskObj = { ...taskObj, ...uData.task };
+                renderStaffTask(taskObj);
                 const fb2 = document.getElementById('staff-feedback-msg');
-                if (fb2) fb2.textContent = '✓ Status updated and synced with Hussein Bdeir!';
+                if (fb2) fb2.textContent = '✓ Status updated and notified Hussein Bdeir on Planner!';
+
+                // Also dispatch real-time status-specific Web Push (Seen / Working / Completed + staffNote) to all armed Planner devices
+                const targets = Array.isArray(taskObj.ownerPushTargets) ? taskObj.ownerPushTargets : [];
+                if (targets.length > 0 && !(newStatus === 'done' && taskObj.pushOnDone && !noteVal)) {
+                  const who = taskObj.assigneeName || 'Team';
+                  const stMap = {
+                    seen: `👀 ${who} saw task — Planner`,
+                    working: `⚙️ ${who} is working on task — Planner`,
+                    done: `✅ ${who} completed task — Planner`
+                  };
+                  const pushPayload = {
+                    title: stMap[newStatus] || `👤 ${who} updated task — Planner`,
+                    body: `${taskObj.title}${noteVal ? ` · 💬 "${noteVal}"` : ''}`,
+                    tag: `cmd-del-${taskId}-${newStatus}`,
+                    tab: 'delegated',
+                    taskId,
+                    url: `./?tab=delegated&taskId=${encodeURIComponent(taskId)}`,
+                    requireInteraction: newStatus === 'done'
+                  };
+                  for (const tgt of targets) {
+                    if (!tgt || !tgt.endpoint || !tgt.vapid || !tgt.keys) continue;
+                    try {
+                      const bodyB64 = await encryptWebPush(tgt.keys, pushPayload);
+                      await fetch(CLOUD_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
+                        body: JSON.stringify({
+                          op: 'push',
+                          endpoint: tgt.endpoint,
+                          vapid: tgt.vapid,
+                          bodyB64,
+                          ttl: '14400'
+                        })
+                      });
+                    } catch {}
+                  }
+                }
               }
             } catch {}
           });
@@ -3730,10 +4401,11 @@
       applicationServerKey: b64UrlToU8(VAPID_PUBLIC_B64)
     });
     localStorage.setItem(PUSH_REG_KEY, JSON.stringify(sub.toJSON()));
-    const pDot = document.getElementById('push-dot');
-    if (pDot) pDot.hidden = false;
-    showToast('🔔 Lock-Screen Web Push Active!');
-    syncAll().catch(() => {});
+    updatePushHudState();
+    showToast('🔔 Planner Lock-Screen Web Push Active! Arming Prayers, Tasks & Timers…');
+    await syncAll().catch(() => {});
+    scheduleUpcomingPrayerCloudPushes(null, true).catch(() => {});
+    scheduleAllActiveTaskCloudPushes(null, true).catch(() => {});
     return true;
   }
 
@@ -3774,7 +4446,19 @@
     });
 
     document.getElementById('btn-push-toggle')?.addEventListener('click', async () => {
+      if (!isThisDevicePushEnabled()) {
+        await subscribeCurrentBrowserPush();
+      }
+      openNotificationCenterSheet();
+    });
+
+    document.getElementById('btn-banner-enable-push')?.addEventListener('click', async () => {
       await subscribeCurrentBrowserPush();
+      renderAll();
+    });
+
+    document.getElementById('btn-banner-notif-center')?.addEventListener('click', () => {
+      openNotificationCenterSheet();
     });
 
     // Capture Bar input & submit
@@ -3976,6 +4660,20 @@
         if (!item) return;
 
         if (act === 'toggle-done') {
+          if (!item.completed && (item.recur === 'daily' || item.recur === 'weekly')) {
+            const deltaMs = item.recur === 'weekly' ? 7 * 86400000 : 86400000;
+            const base = Math.max(Date.now(), Number(item.dueAt || item.matureAt || Date.now()));
+            item.dueAt = base + deltaMs;
+            if (item.matureAt) item.matureAt = base + deltaMs;
+            item.completed = false;
+            item.updatedAt = Date.now();
+            saveLocalState();
+            renderAll();
+            scheduleCloudTimerPush(item, null, true).catch(() => {});
+            syncAll().catch(() => {});
+            showToast(`🔁 Completed today · Rolled forward (${item.recur === 'weekly' ? '+7d' : '+24h'})`);
+            return;
+          }
           item.completed = !item.completed;
           if (item.completed && item.isDelegated) {
             item.delegationStatus = 'verified';
@@ -3983,6 +4681,11 @@
           item.updatedAt = Date.now();
           saveLocalState();
           renderAll();
+          if (item.completed) {
+            cancelCloudTimerPush(item.id).catch(() => {});
+          } else if (item.matureAt || item.dueAt) {
+            scheduleCloudTimerPush(item, null, true).catch(() => {});
+          }
           syncAll().catch(() => {});
           showToast(item.completed ? '✓ Marked complete' : '↺ Reopened task');
           return;
@@ -4014,8 +4717,9 @@
           item.updatedAt = Date.now();
           saveLocalState();
           renderAll();
+          scheduleCloudTimerPush(item, null, true).catch(() => {});
           syncAll().catch(() => {});
-          showToast(`⏳ Snoozed ${act === 'snooze-1d' ? '+24h' : '+3d'}`);
+          showToast(`⏳ Snoozed ${act === 'snooze-1d' ? '+24h' : '+3d'} & cloud alarm updated`);
           return;
         }
         if (act === 'release-now') {
@@ -4024,6 +4728,7 @@
           item.updatedAt = Date.now();
           saveLocalState();
           renderAll();
+          cancelCloudTimerPush(item.id).catch(() => {});
           syncAll().catch(() => {});
           showToast('🔓 Marked Ready Now');
           return;
@@ -4046,6 +4751,7 @@
           state.reminders = state.reminders.filter((r) => r.id !== id);
           saveLocalState();
           renderAll();
+          cancelCloudTimerPush(id).catch(() => {});
           syncAll().catch(() => {});
           showToast('Removed item');
           return;
@@ -4142,6 +4848,46 @@
 
     document.getElementById('sheet-body')?.addEventListener('click', async (e) => {
       if (await handlePrayerControlClick(e)) return;
+
+      if (e.target.closest('#btn-notif-enable-device')) {
+        await subscribeCurrentBrowserPush();
+        openNotificationCenterSheet();
+        return;
+      }
+      if (e.target.closest('#btn-notif-rearm-all')) {
+        showToast('⚡ Re-arming all Prayer, Task & Timer cloud pushes…');
+        await syncAll();
+        const pCnt = await scheduleUpcomingPrayerCloudPushes(null, true);
+        const tCnt = await scheduleAllActiveTaskCloudPushes(null, true);
+        showToast(`✅ Armed ${pCnt} prayer slots & ${tCnt} task/timer alarms in Cloud Relay!`);
+        openNotificationCenterSheet();
+        return;
+      }
+      const nToggle = e.target.closest('[data-notif-toggle]');
+      if (nToggle) {
+        const ch = nToggle.getAttribute('data-notif-toggle');
+        if (ch === 'prayers') {
+          const nextP = !(state.notifPrefs.prayers !== false && state.prayerConfig.enabled !== false);
+          state.notifPrefs.prayers = nextP;
+          updatePrayerConfig({ enabled: nextP });
+        } else if (ch && ch in state.notifPrefs) {
+          state.notifPrefs[ch] = !state.notifPrefs[ch];
+          if (ch === 'chime') {
+            state.prayerConfig.chime = state.notifPrefs.chime;
+            if (state.notifPrefs.chime) playTaskChime();
+          }
+          saveLocalState();
+          syncAll().catch(() => {});
+        }
+        openNotificationCenterSheet();
+        return;
+      }
+      const nTest = e.target.closest('[data-notif-test]');
+      if (nTest) {
+        const ch = nTest.getAttribute('data-notif-test') || 'prayers';
+        await sendChannelTestPush(ch);
+        return;
+      }
 
       const quickAdd = e.target.closest('#sheet-quick-add');
       if (quickAdd) {
@@ -4283,7 +5029,7 @@
         }
       });
       navigator.serviceWorker
-        .register('./sw.js?v=11', { updateViaCache: 'none' })
+        .register('./sw.js?v=12', { updateViaCache: 'none' })
         .then(async (reg) => {
           reg.update().catch(() => {});
           if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
@@ -4301,8 +5047,7 @@
             const existingSub = await reg.pushManager.getSubscription();
             if (existingSub) {
               localStorage.setItem(PUSH_REG_KEY, JSON.stringify(existingSub.toJSON()));
-              const pDot = document.getElementById('push-dot');
-              if (pDot) pDot.hidden = false;
+              updatePushHudState();
             }
           } catch {}
         })
@@ -4352,6 +5097,7 @@
       consumePendingCommandNav().finally(() => {
         renderAll();
         checkLivePrayerNotificationsTick();
+        checkLiveTaskNotificationsTick();
         syncAll().catch(() => {});
       });
     });
@@ -4361,14 +5107,12 @@
         consumePendingCommandNav().finally(() => {
           renderAll();
           checkLivePrayerNotificationsTick();
+          checkLiveTaskNotificationsTick();
           syncAll().catch(() => {});
         });
       }
     });
-    if (getAllActivePushSubscriptions().length > 0) {
-      const pDot = document.getElementById('push-dot');
-      if (pDot) pDot.hidden = false;
-    }
+    updatePushHudState();
     bindOwnerEvents();
     renderAll();
 
@@ -4387,9 +5131,11 @@
     }
 
     checkLivePrayerNotificationsTick();
+    checkLiveTaskNotificationsTick();
     await syncAll();
     setInterval(() => {
       checkLivePrayerNotificationsTick();
+      checkLiveTaskNotificationsTick();
       if (!isFormControlFocused()) renderAll();
     }, 15000);
     setInterval(() => {
