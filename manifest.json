@@ -1,13 +1,15 @@
 {
-  "name": "THEO Command — Executive Planner, Delegation & 100% Discipline",
+  "id": "/command/",
+  "name": "THEO Command — Planning, Tasks, Delegation, 100% Score & Prayer Times",
   "short_name": "Command",
-  "description": "Zero-scroll 2x4 Bento Radar planner, smart wait timers, BHFIRMS organizational task delegation, and Daily 100-Point Discipline ledger.",
+  "description": "Standalone Executive PWA for 2x4 Bento Planning, Smart Tasks & Wait Timers, BHFIRMS Task Delegation, Daily 100-Point Discipline Score, and Shia Prayer Times.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait-primary",
   "background_color": "#F8F6F1",
   "theme_color": "#F8F6F1",
+  "categories": ["productivity", "business", "lifestyle"],
   "icons": [
     {
       "src": "icon.svg",
@@ -18,7 +20,8 @@
     {
       "src": "icon-180.png",
       "sizes": "180x180",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
     },
     {
       "src": "icon-192.png",
@@ -31,6 +34,38 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Planning & 2x4 Radar",
+      "short_name": "Planning",
+      "description": "Open the 8-Cluster Bento Radar & Sub-Topic Planner",
+      "url": "./?tab=planning"
+    },
+    {
+      "name": "Tasks & Wait Timers",
+      "short_name": "Tasks",
+      "description": "View ready tasks, verify checks, shipping & payment timers",
+      "url": "./?tab=tasks"
+    },
+    {
+      "name": "BHFIRMS Delegation",
+      "short_name": "Delegation",
+      "description": "Track delegated BHFIRMS tasks & WhatsApp status updates",
+      "url": "./?tab=delegated"
+    },
+    {
+      "name": "100% Discipline Score",
+      "short_name": "The Score",
+      "description": "Log today's 5 Do's & 5 Don'ts (starts at 50%)",
+      "url": "./?tab=score"
+    },
+    {
+      "name": "Shia Prayer Times",
+      "short_name": "Prayers",
+      "description": "Fajr, Dohor & Maghrib times, GPS & notifications",
+      "url": "./?tab=prayers"
     }
   ]
 }

@@ -151,6 +151,25 @@ button {
   border-radius: 7px;
 }
 
+.hud-brand-copy {
+  display: inline-flex;
+  align-items: center;
+}
+
+.hud-brand-name {
+  font-family: 'Archivo', sans-serif;
+  font-size: 12.5px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: var(--text-primary);
+}
+
+@media (max-width: 720px) {
+  .hud-brand-copy {
+    display: none;
+  }
+}
+
 .hud-score-pill {
   display: inline-flex;
   align-items: center;
@@ -600,9 +619,43 @@ button {
   gap: 7px;
 }
 
-#view-radar.cmd-view {
+#view-planning.cmd-view.is-radar-mode {
   flex: 1 1 0%;
   height: 100%;
+}
+
+.planning-toolbar {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.planning-mode-seg {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px;
+  border-radius: 9px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+}
+
+.planning-mode-btn {
+  padding: 4px 9px;
+  border-radius: 7px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.planning-mode-btn.active {
+  background: var(--brass-glow);
+  color: var(--brass-bright);
+  border: 1px solid var(--border-strong);
 }
 
 .cmd-view[hidden] {
@@ -1623,7 +1676,8 @@ button {
   gap: 6px;
 }
 
-.prayer-card-time {
+.prayer-card-time,
+.prayer-detail-time {
   font-family: 'Archivo', sans-serif;
   font-size: 24px;
   font-weight: 800;
@@ -1637,7 +1691,8 @@ button {
   line-height: 1.3;
 }
 
-.prayer-card-controls {
+.prayer-card-controls,
+.prayer-adj-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1645,6 +1700,7 @@ button {
   padding-top: 6px;
   border-top: 1px solid var(--border-subtle);
   margin-top: auto;
+  font-size: 11px;
 }
 
 .prayer-offset-stepper {
@@ -1654,17 +1710,42 @@ button {
   font-size: 11px;
 }
 
-.prayer-step-btn {
-  width: 22px;
-  height: 22px;
+.prayer-step-btn,
+.prayer-adj-btn {
+  min-width: 28px;
+  height: 24px;
+  padding: 0 6px;
   border-radius: 6px;
   background: var(--bg-ink);
   border: 1px solid var(--border-subtle);
-  font-weight: 800;
-  font-size: 12px;
+  font-weight: 700;
+  font-size: 11px;
+  color: var(--text-secondary);
   display: inline-flex;
   align-items: center;
   justify-content: center;
+}
+
+.prayer-step-btn:hover,
+.prayer-adj-btn:hover {
+  border-color: var(--brass);
+  color: var(--brass-bright);
+}
+
+.prayer-loc-form-grid {
+  display: grid;
+  grid-template-columns: 1.3fr 0.8fr 0.8fr 1.1fr auto;
+  gap: 6px;
+  align-items: center;
+}
+
+@media (max-width: 720px) {
+  .prayer-loc-form-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .prayer-loc-form-grid button[type="submit"] {
+    grid-column: 1 / -1;
+  }
 }
 
 .prayer-loc-box {
@@ -1699,7 +1780,8 @@ button {
   font-weight: 800;
 }
 
-.prayer-week-table tr.is-today {
+.prayer-week-table tr.is-today,
+.prayer-week-table tr.today-row {
   background: var(--brass-glow);
   font-weight: 700;
 }

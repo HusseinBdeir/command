@@ -207,16 +207,18 @@
 
   const state = {
     theme: localStorage.getItem('theo_cmd_theme_v2') === 'dark' ? 'dark' : 'light',
-    activeTab: 'radar',
+    activeTab: 'planning', // 'planning' | 'tasks' | 'delegated' | 'score' | 'prayers'
+    planningMode: 'radar', // 'radar' | 'clusters' | 'subtopics'
     scoreDate: todayIso(),
     boardFilter: 'all',
     boardGroupBy: 'cluster', // 'cluster' | 'subtopic'
+    taskFilter: 'all', // 'all' | 'ready' | 'action' | 'timers' | 'verify' | 'shipping' | 'payments' | 'recurring' | 'ideas' | 'done'
     timerFilter: 'all',
     delegatedBuFilter: 'all',
     delegatedStatusFilter: 'all',
     expandedRowId: '',
     openClusterSheetId: '',
-    openSheetKind: '', // '' | 'cluster' | 'roster' | 'prayer'
+    openSheetKind: '', // '' | 'cluster' | 'roster'
     bridgeOrigin: '',
     syncMode: 'cloud',
     reminders: [],
@@ -1065,6 +1067,7 @@
     const id = String(raw.id || endpoint.slice(-16)).replace(/[^a-zA-Z0-9_-]/g, '');
     return {
       id: id || 'dev',
+      app: String(raw.app || '').trim() || undefined,
       endpoint,
       p256dh,
       auth,
@@ -1075,8 +1078,14 @@
   function getAllActivePushSubscriptions() {
     const byEndpoint = new Map();
     const localSub = normalizePushSubEntry(getSavedPushSub());
-    if (localSub) byEndpoint.set(localSub.endpoint, localSub);
-    for (const d of state.cloudPushDevices || []) {
+    if (localSub) {
+      localSub.app = 'command';
+      byEndpoint.set(localSub.endpoint, localSub);
+    }
+    const cloudList = Array.isArray(state.cloudPushDevices) ? state.cloudPushDevices : [];
+    const cmdCloud = cloudList.filter((d) => d && d.app === 'command' && d.prefs?.enabled !== false);
+    const sourceList = cmdCloud.length > 0 ? cmdCloud : cloudList;
+    for (const d of sourceList) {
       if (d && d.prefs && d.prefs.enabled === false) continue;
       const norm = normalizePushSubEntry(d);
       if (norm && !byEndpoint.has(norm.endpoint)) {
@@ -1125,9 +1134,9 @@
           title: `⏳ Timer Ready — ${item.title.slice(0, 42)}`,
           body: `${item.subTag ? `${item.subTag} · ` : ''}Tap to verify or complete in THEO Command.`,
           tag: `cmd-timer-${item.id}`,
-          tab: 'timers',
+          tab: 'tasks',
           taskId: item.id,
-          url: `./?tab=timers&taskId=${encodeURIComponent(item.id)}`
+          url: `./?tab=tasks&taskId=${encodeURIComponent(item.id)}`
         });
         await fetch(CLOUD_URL, {
           method: 'POST',
@@ -1498,8 +1507,8 @@
               tag: payload.tag || 'theo-cmd-prayer',
               renotify: true,
               data: {
-                url: payload.url || './?prayer=1',
-                tab: payload.tab || 'timers',
+                url: payload.url || './?tab=prayers',
+                tab: payload.tab || 'prayers',
                 openPrayer: true
               }
             });
@@ -1553,9 +1562,9 @@
             title,
             body,
             tag: `theo-prayer-pre-${todayStr}-${p.id}`,
-            tab: 'timers',
+            tab: 'prayers',
             openPrayer: true,
-            url: './?prayer=1'
+            url: './?tab=prayers'
           });
         }
       }
@@ -1573,9 +1582,9 @@
           title,
           body,
           tag: `theo-prayer-${todayStr}-${p.id}`,
-          tab: 'timers',
+          tab: 'prayers',
           openPrayer: true,
-          url: './?prayer=1'
+          url: './?tab=prayers'
         });
       }
     }
@@ -1638,9 +1647,9 @@
                     title: `${p.icon} ${p.label} in ${cfg.preRemindMin} min · ${p.time24}`,
                     body: `${p.arabic} at ${p.time24} in ${cfg.locationName}. ${p.windowNote}`,
                     tag: `theo-prayer-pre-${iso}-${p.id}`,
-                    tab: 'timers',
+                    tab: 'prayers',
                     openPrayer: true,
-                    url: './?prayer=1'
+                    url: './?tab=prayers'
                   });
                   const r = await fetch(CLOUD_URL, {
                     method: 'POST',
@@ -1686,9 +1695,9 @@
                   title: `🕌 ${p.label} Prayer Time · ${p.time24} (${p.arabic})`,
                   body: `${p.label} has entered in ${cfg.locationName}. ${p.windowNote}. Hayya 'ala Khayr al-'Amal.`,
                   tag: `theo-prayer-${iso}-${p.id}`,
-                  tab: 'timers',
+                  tab: 'prayers',
                   openPrayer: true,
-                  url: './?prayer=1'
+                  url: './?tab=prayers'
                 });
                 const r = await fetch(CLOUD_URL, {
                   method: 'POST',
@@ -1741,9 +1750,9 @@
       title: `🕌 Shia Prayer Alerts Active · ${s.locationName}`,
       body: `Day ${s.dayOfYear}: Fajr ${s.fajr.time24} · Dohor ${s.dhuhr.time24} · Maghrib ${s.maghrib.time24}. Next: ${nxt.label} (${nxt.time24}) in ${cd}.`,
       tag: `theo-prayer-test-${Date.now()}`,
-      tab: 'timers',
+      tab: 'prayers',
       openPrayer: true,
-      url: './?prayer=1'
+      url: './?tab=prayers'
     };
 
     showLocalSwNotification(msg);
@@ -2161,6 +2170,7 @@
               `cmd_dev_${Math.abs(
                 Array.from(localSub.endpoint).reduce((h, c) => ((h << 5) - h + c.charCodeAt(0)) | 0, 0)
               ).toString(36)}`,
+            app: 'command',
             endpoint: localSub.endpoint,
             p256dh: localSub.p256dh,
             auth: localSub.auth,
@@ -2257,6 +2267,7 @@
     const nameEl = document.getElementById('prayer-hud-name');
     const timeEl = document.getElementById('prayer-hud-time');
     const cdEl = document.getElementById('prayer-hud-cd');
+    const dockPrayerBadge = document.getElementById('dock-badge-prayers');
     if (!btn || !nameEl || !timeEl) return;
 
     const now = Date.now();
@@ -2270,8 +2281,13 @@
       nameEl.textContent = nxt.label;
       timeEl.textContent = nxt.time24;
       if (cdEl) cdEl.textContent = `in ${cd}`;
+      if (dockPrayerBadge) {
+        dockPrayerBadge.hidden = false;
+        dockPrayerBadge.textContent = nxt.time24;
+        dockPrayerBadge.className = `dock-pill ${isImminent ? 'emerald' : 'steel'} tabular`;
+      }
       btn.classList.toggle('imminent', isImminent);
-      btn.title = `🕌 Shia Prayer Times (${today.locationName} · Day #${today.dayOfYear})\n🌅 Fajr: ${today.fajr.time24}  |  ☀️ Dohor: ${today.dhuhr.time24}  |  🌙 Maghrib: ${today.maghrib.time24}\nNext: ${nxt.label} (${nxt.arabic}) at ${nxt.time24} (in ${cd})\nTap to configure location, GPS, or test push notifications`;
+      btn.title = `🕌 Shia Prayer Times (${today.locationName} · Day #${today.dayOfYear})\n🌅 Fajr: ${today.fajr.time24}  |  ☀️ Dohor: ${today.dhuhr.time24}  |  🌙 Maghrib: ${today.maghrib.time24}\nNext: ${nxt.label} (${nxt.arabic}) at ${nxt.time24} (in ${cd})\nTap to open Prayer Times tab`;
     }
   }
 
@@ -2558,79 +2574,126 @@
   }
 
   /* ============================================================================
-     TAB 1: ZERO-SCROLL 2X4 BENTO RADAR GRID
+     TAB 1: PLANNING (2X4 ZERO-SCROLL BENTO RADAR + CLUSTER & SUB-TOPIC BOARD)
      ============================================================================ */
-  function renderRadarPrayerStripHtml(now = Date.now()) {
-    const status = getNextShiaPrayerStatus(now);
-    const today = status.todaySched;
-    const nxt = status.nextPrayer;
-    const cd = nxt ? formatCountdown(nxt.epochMs, now) : '';
-    const slots = today.prayers;
-    const isMobileViewport = typeof window !== 'undefined' && window.innerWidth <= 640;
-
-    const slotsHtml = slots
-      .map((p) => {
-        const isNext = nxt && nxt.id === p.id && !nxt.isTomorrow;
-        const isPassed = now >= p.epochMs;
-        const cls = ['prayer-slot-chip', isNext ? 'active-next' : isPassed ? 'passed' : '']
-          .filter(Boolean)
-          .join(' ');
-        return `
-          <span class="${cls}">
-            <span>${p.icon}</span>
-            <span class="p-lbl">${esc(p.label)}</span>
-            <span class="p-tm tabular">${esc(p.time24)}</span>
-            ${
-              isNext && !isMobileViewport
-                ? `<span class="p-cnt tabular">in ${esc(cd)}</span>`
-                : ''
-            }
-          </span>
-        `;
-      })
-      .join('');
-
-    const shortLoc = (today.locationName || 'Beirut').split(',')[0].trim();
-
-    return `
-      <div class="radar-prayer-strip" data-open-prayer="1" title="Tap to open Shia Prayer Times, GPS location &amp; notification settings">
-        <div class="radar-prayer-meta">
-          <span>🕌</span>
-          <strong>${esc(isMobileViewport ? shortLoc : `Shia Prayer · ${shortLoc}`)}</strong>
-          ${
-            !isMobileViewport
-              ? `<span style="font-size:10px;color:var(--text-muted)" class="tabular">Day #${today.dayOfYear}</span>`
-              : ''
-          }
-        </div>
-        <div class="radar-prayer-slots">
-          ${slotsHtml}
-          ${
-            nxt && nxt.isTomorrow && !isMobileViewport
-              ? `<span class="prayer-slot-chip active-next"><span>🌅</span><span class="p-lbl">Fajr (Tom)</span><span class="p-tm tabular">${esc(nxt.time24)}</span><span class="p-cnt tabular">in ${esc(cd)}</span></span>`
-              : ''
-          }
-        </div>
-        <span class="radar-prayer-loc">
-          <span>📍</span>
-          <span>${isMobileViewport ? '⚙️' : 'Alerts &amp; GPS ↗'}</span>
-        </span>
-      </div>
-    `;
-  }
-
-  function renderRadarView() {
-    const root = document.getElementById('view-radar');
+  function renderPlanningView() {
+    const root = document.getElementById('view-planning');
     if (!root) return;
     const now = Date.now();
     const active = state.reminders.filter((r) => !r.completed);
-    const prayerStripHtml = renderRadarPrayerStripHtml(now);
+    const completed = state.reminders.filter((r) => r.completed);
+    const isRadarMode = state.planningMode === 'radar';
+    root.classList.toggle('is-radar-mode', isRadarMode);
 
     // Urgent / Matured / Staff-Completed strip
     const urgentItems = active.filter((r) => {
       const t = Number(r.matureAt || r.dueAt || 0);
       return (t > 0 && now >= t) || r.delegationStatus === 'done';
     });
+
+    const toolbarHtml = `
+      <div class="planning-toolbar">
+        <div class="planning-mode-seg" role="tablist" aria-label="Planning View Mode">
+          <button type="button" class="planning-mode-btn ${state.planningMode === 'radar' ? 'active' : ''}" data-planning-mode="radar">
+            🎯 2×4 Radar
+          </button>
+          <button type="button" class="planning-mode-btn ${state.planningMode === 'clusters' ? 'active' : ''}" data-planning-mode="clusters">
+            🗂️ Clusters (${active.length})
+          </button>
+          <button type="button" class="planning-mode-btn ${state.planningMode === 'subtopics' ? 'active' : ''}" data-planning-mode="subtopics">
+            🏷️ Sub-Topics &amp; BUs
+          </button>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px">
+          ${
+            urgentItems.length > 0
+              ? `<button type="button" class="mini-chip active" data-goto-tasks-filter="ready" style="border-color:var(--emerald);color:var(--emerald)">🔥 ${urgentItems.length} Ready Now →</button>`
+              : `<span style="font-size:11px;color:var(--text-muted)" class="tabular">8 Clusters · ${active.length} active</span>`
+          }
+        </div>
+      </div>
+    `;
+
+    if (state.planningMode !== 'radar') {
+      const filtered =
+        state.boardFilter === 'completed'
+          ? completed
+          : state.boardFilter === 'all'
+            ? active
+            : active.filter((r) => (r.category || 'work') === state.boardFilter);
+
+      let listHtml = '';
+      if (state.planningMode === 'subtopics' && state.boardFilter !== 'completed') {
+        const groups = new Map();
+        for (const r of filtered) {
+          const cl = CLUSTERS.find((c) => c.id === (r.category || 'work')) || CLUSTERS[3];
+          const key = r.subTag ? `${cl.icon} ${cl.shortLabel} · ${r.subTag}` : `${cl.icon} ${cl.label}`;
+          if (!groups.has(key)) groups.set(key, []);
+          groups.get(key).push(r);
+        }
+        listHtml = Array.from(groups.entries())
+          .map(
+            ([gName, items]) => `
+            <div class="ticker-group-header">
+              <span>${esc(gName)}</span>
+              <span>${items.length}</span>
+            </div>
+            ${items.map((it) => renderTickerRowHtml(it, now)).join('')}
+          `
+          )
+          .join('');
+      } else if (state.boardFilter === 'all') {
+        const groups = new Map();
+        for (const c of CLUSTERS) {
+          const cItems = active.filter((r) => (r.category || 'work') === c.id);
+          if (cItems.length) {
+            groups.set(`${c.icon} ${c.label}`, cItems);
+          }
+        }
+        listHtml = Array.from(groups.entries())
+          .map(
+            ([gName, items]) => `
+            <div class="ticker-group-header">
+              <span>${esc(gName)}</span>
+              <span>${items.length}</span>
+            </div>
+            ${items.map((it) => renderTickerRowHtml(it, now)).join('')}
+          `
+          )
+          .join('');
+      } else {
+        listHtml = filtered.map((it) => renderTickerRowHtml(it, now)).join('');
+      }
+
+      root.innerHTML = `
+        ${toolbarHtml}
+        <div class="view-filter-bar">
+          <div class="horiz-pill-strip">
+            <button type="button" class="filter-pill ${state.boardFilter === 'all' ? 'active' : ''}" data-board-filter="all">
+              All Active (${active.length})
+            </button>
+            ${CLUSTERS.map((c) => {
+              const cnt = active.filter((r) => (r.category || 'work') === c.id).length;
+              return `
+                <button type="button" class="filter-pill ${state.boardFilter === c.id ? 'active' : ''}" data-board-filter="${c.id}">
+                  ${c.icon} ${esc(c.shortLabel)} (${cnt})
+                </button>
+              `;
+            }).join('')}
+            <button type="button" class="filter-pill ${state.boardFilter === 'completed' ? 'active' : ''}" data-board-filter="completed">
+              ✓ Done (${completed.length})
+            </button>
+          </div>
+        </div>
+        <div class="ticker-list">
+          ${
+            listHtml ||
+            `<div style="padding:28px;text-align:center;color:var(--text-muted)">No items in this cluster filter yet.</div>`
+          }
+        </div>
+      `;
+      return;
+    }
 
     const urgentHtml = urgentItems.length
       ? `
@@ -2738,7 +2801,7 @@
     }).join('');
 
     root.innerHTML = `
-      ${prayerStripHtml}
+      ${toolbarHtml}
       ${urgentHtml}
       <div class="bento-radar-grid">
         ${tilesHtml}
@@ -2747,7 +2810,7 @@
   }
 
   /* ============================================================================
-     TAB 2: TIMERS & HOLDS (SHIA PRAYERS, VERIFY APP SYNC, SHIPPING, PAYMENTS)
+     TAB 2: TASKS & WAIT TIMERS (READY NOW, ACTION TASKS, VERIFY, SHIPPING, HOLDS)
      ============================================================================ */
   function isTimerItem(r) {
     if (!r || r.completed || r.deleted) return false;
@@ -2768,91 +2831,106 @@
     return Boolean(r.isDelegated || r.assigneeName || r.category === 'people');
   }
 
-  function renderPrayerTimerRowsHtml(now = Date.now()) {
-    const status = getNextShiaPrayerStatus(now);
-    const today = status.todaySched;
-    const tomorrow = status.tomorrowSched;
-    const cfg = normalizePrayerConfig(state.prayerConfig);
-
-    const slots = today.prayers.map((todaySlot, idx) => {
-      const passedToday = now >= todaySlot.epochMs;
-      const activeSlot = passedToday ? tomorrow.prayers[idx] : todaySlot;
-      const isNext = status.nextPrayer && status.nextPrayer.id === todaySlot.id;
-      const countdown = formatCountdown(activeSlot.epochMs, now);
-      return {
-        ...activeSlot,
-        passedToday,
-        isNext,
-        countdown,
-        enabled: cfg.enabled && todaySlot.enabled
-      };
-    });
-
-    return `
-      <div class="ticker-group-header" style="display:flex;justify-content:space-between;align-items:center">
-        <span>🕌 Daily Shia Prayer Alerts · ${esc(today.locationName)} (Day #${today.dayOfYear} · δ ${today.declinationDeg >= 0 ? '+' : ''}${today.declinationDeg}°)</span>
-        <button type="button" class="mini-chip active" data-open-prayer="1">⚙️ Location, Angles &amp; Test Push</button>
-      </div>
-      ${slots
-        .map(
-          (p) => `
-        <div class="ticker-row-card ${p.isNext ? 'matured' : 'holding'}" data-open-prayer="1" style="cursor:pointer">
-          <div class="ticker-main-line">
-            <span style="font-size:16px">${p.icon}</span>
-            <span class="ticker-title">
-              <strong>${esc(p.label)} (${esc(p.arabic)})</strong>
-              <span style="color:var(--text-secondary);font-size:12px;margin-left:6px">${esc(p.windowNote)}</span>
-            </span>
-            <div class="ticker-pills">
-              <span class="t-pill">${p.passedToday ? 'Tomorrow' : 'Today'} · ${esc(p.time24)}</span>
-              <span class="t-pill ${p.isNext ? 'matured' : 'timer'} tabular">
-                ${p.isNext ? `🕌 Next in ${esc(p.countdown)}` : `⏳ in ${esc(p.countdown)}`}
-              </span>
-              <span class="t-pill ${p.enabled ? 'person' : ''}">
-                ${p.enabled ? '🔔 Push On' : '🔕 Muted'}
-              </span>
-            </div>
-          </div>
-        </div>
-      `
-        )
-        .join('')}
-    `;
+  function isReadyNowItem(r, now = Date.now()) {
+    if (!r || r.completed || r.deleted) return false;
+    const t = Number(r.matureAt || r.dueAt || 0);
+    return (t > 0 && now >= t) || r.delegationStatus === 'done';
   }
 
-  function renderTimersView() {
-    const root = document.getElementById('view-timers');
+  function isActionTaskItem(r) {
+    if (!r || r.completed || r.deleted) return false;
+    if (r.category === 'ideas' || r.category === 'want_to_do') return false;
+    return !isTimerItem(r);
+  }
+
+  function renderTasksView() {
+    const root = document.getElementById('view-tasks');
     if (!root) return;
     const now = Date.now();
-    const allTimed = state.reminders.filter(isTimerItem);
+    const active = state.reminders.filter((r) => !r.completed && !r.deleted);
+    const completed = state.reminders.filter((r) => r.completed && !r.deleted);
+    const readyList = active.filter((r) => isReadyNowItem(r, now));
+    const actionList = active.filter(isActionTaskItem);
+    const timerList = active.filter(isTimerItem);
+    const verifyList = active.filter((r) => r.category === 'verify');
+    const shippingList = active.filter((r) => r.category === 'shipping');
+    const paymentList = active.filter((r) => r.category === 'payments');
+    const recurList = active.filter((r) => r.recur && r.recur !== 'none');
+    const ideasList = active.filter((r) => r.category === 'ideas' || r.category === 'want_to_do' || r.kind === 'parked');
 
     const filters = [
-      { id: 'all', lbl: `All Timers (${allTimed.length + 3})` },
-      { id: 'prayers', lbl: `🕌 Shia Prayers (3)` },
-      {
-        id: 'ready',
-        lbl: `🔓 Ready Now (${allTimed.filter((r) => (r.matureAt || r.dueAt) && now >= (r.matureAt || r.dueAt)).length})`
-      },
-      { id: 'verify', lbl: `🔍 Verify / App (${allTimed.filter((r) => r.category === 'verify').length})` },
-      { id: 'shipping', lbl: `📦 Shipping (${allTimed.filter((r) => r.category === 'shipping').length})` },
-      { id: 'payments', lbl: `💸 Payment Holds (${allTimed.filter((r) => r.category === 'payments').length})` }
+      { id: 'all', lbl: `All Active (${active.length})` },
+      { id: 'ready', lbl: `🔥 Ready Now (${readyList.length})` },
+      { id: 'action', lbl: `⚡ Action Tasks (${actionList.length})` },
+      { id: 'timers', lbl: `⏳ Wait Timers (${timerList.length})` },
+      { id: 'verify', lbl: `🔍 Verify / App (${verifyList.length})` },
+      { id: 'shipping', lbl: `📦 Shipping (${shippingList.length})` },
+      { id: 'payments', lbl: `💸 Payment Holds (${paymentList.length})` },
+      { id: 'recurring', lbl: `🔁 Recurring (${recurList.length})` },
+      { id: 'ideas', lbl: `💡 Ideas & Parked (${ideasList.length})` },
+      { id: 'done', lbl: `✓ Done (${completed.length})` }
     ];
 
-    const filtered =
-      state.timerFilter === 'prayers'
-        ? []
-        : allTimed
-            .filter((r) => {
-              if (state.timerFilter === 'ready') {
-                const t = Number(r.matureAt || r.dueAt || 0);
-                return t > 0 && now >= t;
-              }
-              if (state.timerFilter !== 'all') return r.category === state.timerFilter;
-              return true;
-            })
-            .sort((a, b) => Number(a.matureAt || a.dueAt || 0) - Number(b.matureAt || b.dueAt || 0));
+    const fId = state.taskFilter || 'all';
+    let contentHtml = '';
 
-    const showPrayers = state.timerFilter === 'all' || state.timerFilter === 'prayers';
+    if (fId === 'all') {
+      const sections = [
+        {
+          title: `🔥 Ready Now & Matured Holds`,
+          items: readyList
+        },
+        {
+          title: `⚡ Action Tasks & Follow-Ups`,
+          items: actionList.filter((r) => !isReadyNowItem(r, now))
+        },
+        {
+          title: `⏳ Active Wait Timers (Verify, Shipping & Payment Holds)`,
+          items: timerList
+            .filter((r) => !isReadyNowItem(r, now))
+            .sort((a, b) => Number(a.matureAt || a.dueAt || 0) - Number(b.matureAt || b.dueAt || 0))
+        },
+        {
+          title: `💡 Want To Do & Ideas for Later`,
+          items: active.filter(
+            (r) =>
+              (r.category === 'ideas' || r.category === 'want_to_do') &&
+              !isReadyNowItem(r, now) &&
+              !isTimerItem(r)
+          )
+        }
+      ].filter((s) => s.items.length > 0);
+
+      contentHtml = sections.length
+        ? sections
+            .map(
+              (s) => `
+            <div class="ticker-group-header">
+              <span>${esc(s.title)}</span>
+              <span>${s.items.length}</span>
+            </div>
+            ${s.items.map((it) => renderTickerRowHtml(it, now)).join('')}
+          `
+            )
+            .join('')
+        : `<div style="padding:28px;text-align:center;color:var(--text-muted)">All clear! Drop a task, @Person delegation, verify check, shipping countdown, or payment hold in the bar above.</div>`;
+    } else {
+      const mapByFilter = {
+        ready: readyList,
+        action: actionList,
+        timers: timerList.sort((a, b) => Number(a.matureAt || a.dueAt || 0) - Number(b.matureAt || b.dueAt || 0)),
+        verify: verifyList,
+        shipping: shippingList,
+        payments: paymentList,
+        recurring: recurList,
+        ideas: ideasList,
+        done: completed
+      };
+      const rows = mapByFilter[fId] || active;
+      contentHtml = rows.length
+        ? rows.map((it) => renderTickerRowHtml(it, now)).join('')
+        : `<div style="padding:28px;text-align:center;color:var(--text-muted)">No items in this filter right now.</div>`;
+    }
 
     root.innerHTML = `
       <div class="view-filter-bar">
@@ -2860,7 +2938,7 @@
           ${filters
             .map(
               (f) => `
-            <button type="button" class="filter-pill ${state.timerFilter === f.id ? 'active' : ''}" data-timer-filter="${f.id}">
+            <button type="button" class="filter-pill ${fId === f.id ? 'active' : ''}" data-task-filter="${f.id}">
               ${esc(f.lbl)}
             </button>
           `
@@ -2869,17 +2947,7 @@
         </div>
       </div>
       <div class="ticker-list">
-        ${showPrayers ? renderPrayerTimerRowsHtml(now) : ''}
-        ${
-          filtered.length
-            ? `
-              ${showPrayers ? `<div class="ticker-group-header"><span>⏳ Task &amp; Hold Timers</span><span>${filtered.length}</span></div>` : ''}
-              ${filtered.map((it) => renderTickerRowHtml(it, now)).join('')}
-            `
-            : state.timerFilter === 'prayers'
-              ? ''
-              : `<div style="padding:28px;text-align:center;color:var(--text-muted)">No active wait timers in this filter. Drop a verify check, shipping countdown, or payment hold above!</div>`
-        }
+        ${contentHtml}
       </div>
     `;
   }
@@ -2974,82 +3042,7 @@
   }
 
   /* ============================================================================
-     TAB 4: HORIZONTAL CATEGORY & SUB-TOPIC BOARD (ZERO VERTICAL SCROLL)
-     ============================================================================ */
-  function renderBoardView() {
-    const root = document.getElementById('view-board');
-    if (!root) return;
-    const now = Date.now();
-    const active = state.reminders.filter((r) => !r.completed);
-    const completed = state.reminders.filter((r) => r.completed);
-
-    const filtered =
-      state.boardFilter === 'completed'
-        ? completed
-        : state.boardFilter === 'all'
-          ? active
-          : active.filter((r) => (r.category || 'work') === state.boardFilter);
-
-    let listHtml = '';
-    if (state.boardGroupBy === 'subtopic' && state.boardFilter !== 'completed') {
-      const groups = new Map();
-      for (const r of filtered) {
-        const cl = CLUSTERS.find((c) => c.id === (r.category || 'work')) || CLUSTERS[3];
-        const key = r.subTag ? `${cl.icon} ${cl.shortLabel} · ${r.subTag}` : `${cl.icon} ${cl.label}`;
-        if (!groups.has(key)) groups.set(key, []);
-        groups.get(key).push(r);
-      }
-      listHtml = Array.from(groups.entries())
-        .map(
-          ([gName, items]) => `
-          <div class="ticker-group-header">
-            <span>${esc(gName)}</span>
-            <span>${items.length}</span>
-          </div>
-          ${items.map((it) => renderTickerRowHtml(it, now)).join('')}
-        `
-        )
-        .join('');
-    } else {
-      listHtml = filtered.map((it) => renderTickerRowHtml(it, now)).join('');
-    }
-
-    root.innerHTML = `
-      <div class="view-filter-bar">
-        <div class="horiz-pill-strip">
-          <button type="button" class="filter-pill ${state.boardFilter === 'all' ? 'active' : ''}" data-board-filter="all">
-            All Active (${active.length})
-          </button>
-          ${CLUSTERS.map((c) => {
-            const cnt = active.filter((r) => (r.category || 'work') === c.id).length;
-            return `
-              <button type="button" class="filter-pill ${state.boardFilter === c.id ? 'active' : ''}" data-board-filter="${c.id}">
-                ${c.icon} ${esc(c.shortLabel)} (${cnt})
-              </button>
-            `;
-          }).join('')}
-          <button type="button" class="filter-pill ${state.boardFilter === 'completed' ? 'active' : ''}" data-board-filter="completed">
-            ✓ Done (${completed.length})
-          </button>
-        </div>
-        <button
-          type="button"
-          class="mini-chip ${state.boardGroupBy === 'subtopic' ? 'active' : ''}"
-          id="btn-toggle-subtopic-group"
-        >🏷️ Sub-Topics &amp; BUs</button>
-      </div>
-
-      <div class="ticker-list">
-        ${
-          listHtml ||
-          `<div style="padding:28px;text-align:center;color:var(--text-muted)">No items in this category yet.</div>`
-        }
-      </div>
-    `;
-  }
-
-  /* ============================================================================
-     TAB 5: DAILY 100-POINT PERSONAL DISCIPLINE LEDGER
+     TAB 4: THE SCORE (DAILY 100-POINT PERSONAL DISCIPLINE LEDGER)
      ============================================================================ */
   function renderScoreView() {
     const root = document.getElementById('view-score');
@@ -3160,6 +3153,243 @@
   }
 
   /* ============================================================================
+     TAB 5: PRAYING TIMES (SHIA JA'FARI: FAJR, DOHOR, MAGHRIB + GPS & 7-DAY TABLE)
+     ============================================================================ */
+  function buildPrayerDashboardHtml(now = Date.now()) {
+    const cfg = normalizePrayerConfig(state.prayerConfig);
+    const status = getNextShiaPrayerStatus(now);
+    const today = status.todaySched;
+    const nxt = status.nextPrayer;
+    const cd = nxt ? formatCountdown(nxt.epochMs, now) : '';
+    const activeSubsCount = getAllActivePushSubscriptions().length;
+
+    const slots = today.prayers;
+    const cardsHtml = slots
+      .map((p) => {
+        const isNext = nxt && nxt.id === p.id && !nxt.isTomorrow;
+        const pEnabled = cfg.enabled && p.enabled;
+        const adj = Number(p.offsetMin || 0);
+        const adjSign = adj > 0 ? `+${adj}m` : `${adj}m`;
+        return `
+          <div class="prayer-detail-card ${isNext ? 'is-next' : ''}">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:6px">
+              <div>
+                <div style="font-size:13.5px;font-weight:800">${p.icon} ${esc(p.label)}</div>
+                <div style="font-size:12px;color:var(--brass-bright);font-weight:700">${esc(p.arabic)}</div>
+              </div>
+              <button
+                type="button"
+                class="mini-chip ${pEnabled ? 'active' : ''}"
+                data-prayer-toggle="${p.id}"
+                title="Toggle notifications for ${esc(p.label)}"
+              >${pEnabled ? '🔔 On' : '🔕 Muted'}</button>
+            </div>
+
+            <div class="prayer-detail-time tabular">${esc(p.time24)}</div>
+            <div style="font-size:10.5px;color:var(--text-secondary)">${esc(p.time12)} · Window until ${esc(p.windowEnd24)}</div>
+            <div style="font-size:10px;color:var(--text-muted)">${esc(p.windowNote)}</div>
+
+            <div class="prayer-adj-row">
+              <span style="color:var(--text-muted)">Offset: <strong class="tabular">${adjSign}</strong></span>
+              <div style="display:flex;gap:4px">
+                <button type="button" class="prayer-adj-btn" data-prayer-adj="${p.id}:-1" title="-1 minute">-1m</button>
+                <button type="button" class="prayer-adj-btn" data-prayer-adj="${p.id}:1" title="+1 minute">+1m</button>
+              </div>
+            </div>
+          </div>
+        `;
+      })
+      .join('');
+
+    // Build 7-day Shia timetable to show day-of-year progression
+    const weekRows = [];
+    const baseIso = todayIso();
+    for (let i = 0; i < 7; i++) {
+      const iso = shiftIsoDate(baseIso, i);
+      const sch = computeShiaPrayerTimesForDate(iso, cfg);
+      const [yy, mm, dd] = iso.split('-').map(Number);
+      const dObj = new Date(yy, mm - 1, dd, 12, 0, 0);
+      const dayLabel =
+        i === 0
+          ? 'Today'
+          : i === 1
+            ? 'Tomorrow'
+            : dObj.toLocaleDateString('en-US', {
+                weekday: 'short',
+                month: 'short',
+                day: 'numeric'
+              });
+      weekRows.push({
+        dayLabel,
+        dateIso: sch.isoDate,
+        dayOfYear: sch.dayOfYear,
+        decl: sch.declinationDeg,
+        fajr: sch.fajr.time24,
+        sunrise: sch.sunrise.time24,
+        dohor: sch.dhuhr.time24,
+        sunset: sch.sunset.time24,
+        maghrib: sch.maghrib.time24,
+        isToday: i === 0
+      });
+    }
+
+    const preOptions = [0, 5, 10, 15, 20];
+
+    return `
+      <div class="prayer-sheet-hero">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;width:100%">
+          <div>
+            <div style="font-size:11px;font-weight:800;color:var(--brass-bright);text-transform:uppercase;letter-spacing:0.06em">
+              🕌 Next Shia Prayer · ${esc(today.locationName)}
+            </div>
+            <div style="font-size:20px;font-weight:800;margin-top:2px">
+              ${nxt ? `${nxt.icon} ${esc(nxt.label)} — ${esc(nxt.arabic)} at <span class="tabular" style="color:var(--emerald)">${esc(nxt.time24)}</span>` : 'Calculating…'}
+            </div>
+            <div style="font-size:12px;color:var(--text-secondary);margin-top:2px">
+              ⏳ Countdown: <strong class="tabular" style="color:var(--text-primary)">in ${esc(cd)}</strong>
+              · Sunrise <span class="tabular">${esc(today.sunrise.time24)}</span>
+              · Sunset <span class="tabular">${esc(today.sunset.time24)}</span>
+              · Midnight <span class="tabular">${esc(today.midnight.time24)}</span>
+            </div>
+          </div>
+
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <button type="button" class="mini-chip ${cfg.enabled ? 'active' : ''}" id="btn-prayer-master-toggle">
+              ${cfg.enabled ? '🔔 Master Alerts: ON' : '🔕 Master Alerts: OFF'}
+            </button>
+            <button type="button" class="mini-chip ${cfg.chime ? 'active' : ''}" id="btn-prayer-sound-toggle">
+              ${cfg.chime ? '🔊 Chime: ON' : '🔇 Chime: OFF'}
+            </button>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:8px;flex-wrap:wrap;font-size:11px;color:var(--text-muted);padding-top:4px;border-top:1px solid var(--border-subtle);width:100%">
+          <span>📅 Date: <strong class="tabular">${esc(today.isoDate)}</strong> (Day <strong>#${today.dayOfYear}/${today.daysInYear}</strong>)</span>
+          <span>☀️ Solar Declination δ: <strong class="tabular">${today.declinationDeg >= 0 ? '+' : ''}${today.declinationDeg}°</strong></span>
+          <span>⏱️ Equation of Time: <strong class="tabular">${today.eqtMinutes >= 0 ? '+' : ''}${today.eqtMinutes}m</strong></span>
+          <span>📱 Push Devices Armed: <strong style="color:var(--emerald)">${activeSubsCount}</strong></span>
+        </div>
+      </div>
+
+      <div class="prayer-cards-grid">
+        ${cardsHtml}
+      </div>
+
+      <div class="prayer-loc-box">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+          <div>
+            <div style="font-size:12.5px;font-weight:800">📍 Location, GPS &amp; Push Delivery</div>
+            <div style="font-size:11px;color:var(--text-muted)">
+              Active: <strong>${esc(cfg.locationName)}</strong> (<span class="tabular">${cfg.lat.toFixed(4)}°, ${cfg.lng.toFixed(4)}°</span> · ${esc(cfg.timeZone)})
+            </div>
+          </div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <button type="button" class="t-act-btn primary" id="btn-prayer-gps">📍 Auto-Detect GPS</button>
+            <button type="button" class="t-act-btn wa" id="btn-prayer-test-push">📲 Send Test Prayer Push</button>
+            <button type="button" class="t-act-btn" id="btn-prayer-sub-device">🔔 Enable This Device</button>
+          </div>
+        </div>
+
+        <div style="font-size:11px;color:var(--text-secondary);font-weight:700">Quick City Presets:</div>
+        <div class="horiz-pill-strip" style="flex-wrap:wrap">
+          ${PRAYER_LOCATION_PRESETS.map((p) => {
+            const isMatch = Math.abs(p.lat - cfg.lat) < 0.03 && Math.abs(p.lng - cfg.lng) < 0.03;
+            return `
+              <button type="button" class="mini-chip ${isMatch ? 'active' : ''}" data-prayer-preset="${p.id}">
+                ${esc(p.short)}
+              </button>
+            `;
+          }).join('')}
+        </div>
+
+        <form id="prayer-custom-loc-form" class="prayer-loc-form-grid">
+          <input type="text" id="prayer-loc-label" value="${esc(cfg.locationName)}" placeholder="City / Label" style="min-width:0;padding:6px 8px;border-radius:7px;background:var(--bg-ink);border:1px solid var(--border-subtle);font-size:12px">
+          <input type="number" step="0.0001" id="prayer-loc-lat" value="${cfg.lat}" placeholder="Lat" required style="min-width:0;padding:6px 8px;border-radius:7px;background:var(--bg-ink);border:1px solid var(--border-subtle);font-size:12px">
+          <input type="number" step="0.0001" id="prayer-loc-lng" value="${cfg.lng}" placeholder="Lng" required style="min-width:0;padding:6px 8px;border-radius:7px;background:var(--bg-ink);border:1px solid var(--border-subtle);font-size:12px">
+          <input type="text" id="prayer-loc-tz" value="${esc(cfg.timeZone)}" placeholder="Timezone (e.g. Asia/Beirut)" required style="min-width:0;padding:6px 8px;border-radius:7px;background:var(--bg-ink);border:1px solid var(--border-subtle);font-size:12px">
+          <button type="submit" class="capture-submit-btn" style="padding:6px 10px;font-size:11.5px">Save</button>
+        </form>
+
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;padding-top:4px;border-top:1px solid var(--border-subtle)">
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+            <span style="font-size:11px;font-weight:700;color:var(--text-secondary)">Shia Angle Method:</span>
+            ${SHIA_METHODS.map(
+              (m) => `
+              <button type="button" class="mini-chip ${cfg.method === m.id ? 'active' : ''}" data-prayer-method="${m.id}" title="${esc(m.label)}">
+                ${esc(m.short)}
+              </button>
+            `
+            ).join('')}
+          </div>
+
+          <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">
+            <span style="font-size:11px;font-weight:700;color:var(--text-secondary)">Pre-Reminder:</span>
+            ${preOptions
+              .map(
+                (mins) => `
+              <button type="button" class="mini-chip ${cfg.preRemindMin === mins ? 'active' : ''}" data-prayer-pre="${mins}">
+                ${mins === 0 ? 'Exact Only' : `${mins}m before`}
+              </button>
+            `
+              )
+              .join('')}
+          </div>
+        </div>
+      </div>
+
+      <div class="prayer-loc-box" style="margin-bottom:16px">
+        <div style="font-size:12px;font-weight:800">📅 7-Day Shia Prayer Schedule (Day-of-Year Solar Progression)</div>
+        <div style="overflow-x:auto">
+          <table class="prayer-week-table">
+            <thead>
+              <tr>
+                <th>Day</th>
+                <th>Day #</th>
+                <th>🌅 Fajr</th>
+                <th>🌄 Sunrise</th>
+                <th>☀️ Dohor</th>
+                <th>🌇 Sunset</th>
+                <th>🌙 Maghrib</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${weekRows
+                .map(
+                  (r) => `
+                <tr class="${r.isToday ? 'today-row' : ''}">
+                  <td>${esc(r.dayLabel)}</td>
+                  <td class="tabular">#${r.dayOfYear} (${r.decl >= 0 ? '+' : ''}${r.decl}°)</td>
+                  <td class="tabular" style="color:var(--emerald)">${esc(r.fajr)}</td>
+                  <td class="tabular" style="color:var(--text-muted)">${esc(r.sunrise)}</td>
+                  <td class="tabular" style="color:var(--brass-bright)">${esc(r.dohor)}</td>
+                  <td class="tabular" style="color:var(--text-muted)">${esc(r.sunset)}</td>
+                  <td class="tabular" style="color:var(--emerald)">${esc(r.maghrib)}</td>
+                </tr>
+              `
+                )
+                .join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderPrayersView() {
+    const root = document.getElementById('view-prayers');
+    if (!root) return;
+    root.innerHTML = buildPrayerDashboardHtml(Date.now());
+  }
+
+  function openPrayerSheet() {
+    state.openClusterSheetId = '';
+    const backdrop = document.getElementById('sheet-backdrop');
+    if (backdrop) backdrop.hidden = true;
+    state.activeTab = 'prayers';
+    renderAll();
+  }
+
+  /* ============================================================================
      SLIDE-UP SHEETS: CLUSTER DRILLDOWN & BHFIRMS TEAM ROSTER MANAGER
      ============================================================================ */
   function openClusterSheet(clusterId) {
@@ -3258,250 +3488,8 @@
     backdrop.hidden = false;
   }
 
-  function openPrayerSheet() {
-    state.openClusterSheetId = '';
-    const backdrop = document.getElementById('sheet-backdrop');
-    const titleWrap = document.getElementById('sheet-title-wrap');
-    const body = document.getElementById('sheet-body');
-    if (!backdrop || !titleWrap || !body) return;
-
-    const now = Date.now();
-    const cfg = normalizePrayerConfig(state.prayerConfig);
-    const status = getNextShiaPrayerStatus(now);
-    const today = status.todaySched;
-    const nxt = status.nextPrayer;
-    const cd = nxt ? formatCountdown(nxt.epochMs, now) : '';
-    const activeSubsCount = getAllActivePushSubscriptions().length;
-
-    titleWrap.innerHTML = `
-      <div style="display:flex;align-items:center;gap:10px">
-        <span style="font-size:20px">🕌</span>
-        <div>
-          <strong style="font-size:15px">Shia Prayer Times &amp; Notifications (Ja'fari)</strong>
-          <div style="font-size:11px;color:var(--text-muted)">
-            Astronomical calculation by Location (${esc(today.lat.toFixed(4))}°, ${esc(today.lng.toFixed(4))}°) &amp; Day of Year (#${today.dayOfYear}/${today.daysInYear})
-          </div>
-        </div>
-      </div>
-    `;
-
-    const slots = today.prayers;
-    const cardsHtml = slots
-      .map((p) => {
-        const isNext = nxt && nxt.id === p.id && !nxt.isTomorrow;
-        const pEnabled = cfg.enabled && p.enabled;
-        const adj = Number(p.offsetMin || 0);
-        const adjSign = adj > 0 ? `+${adj}m` : `${adj}m`;
-        return `
-          <div class="prayer-detail-card ${isNext ? 'is-next' : ''}">
-            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:6px">
-              <div>
-                <div style="font-size:13.5px;font-weight:800">${p.icon} ${esc(p.label)}</div>
-                <div style="font-size:12px;color:var(--brass-bright);font-weight:700">${esc(p.arabic)}</div>
-              </div>
-              <button
-                type="button"
-                class="mini-chip ${pEnabled ? 'active' : ''}"
-                data-prayer-toggle="${p.id}"
-                title="Toggle notifications for ${esc(p.label)}"
-              >${pEnabled ? '🔔 On' : '🔕 Muted'}</button>
-            </div>
-
-            <div class="prayer-detail-time tabular">${esc(p.time24)}</div>
-            <div style="font-size:10.5px;color:var(--text-secondary)">${esc(p.time12)} · Window until ${esc(p.windowEnd24)}</div>
-            <div style="font-size:10px;color:var(--text-muted)">${esc(p.windowNote)}</div>
-
-            <div class="prayer-adj-row">
-              <span style="color:var(--text-muted)">Offset: <strong class="tabular">${adjSign}</strong></span>
-              <div style="display:flex;gap:4px">
-                <button type="button" class="prayer-adj-btn" data-prayer-adj="${p.id}:-1" title="-1 minute">-1m</button>
-                <button type="button" class="prayer-adj-btn" data-prayer-adj="${p.id}:1" title="+1 minute">+1m</button>
-              </div>
-            </div>
-          </div>
-        `;
-      })
-      .join('');
-
-    // Build 7-day Shia timetable to show day-of-year progression
-    const weekRows = [];
-    const baseIso = todayIso();
-    for (let i = 0; i < 7; i++) {
-      const iso = shiftIsoDate(baseIso, i);
-      const sch = computeShiaPrayerTimesForDate(iso, cfg);
-      const [yy, mm, dd] = iso.split('-').map(Number);
-      const dObj = new Date(yy, mm - 1, dd, 12, 0, 0);
-      const dayLabel =
-        i === 0
-          ? 'Today'
-          : i === 1
-            ? 'Tomorrow'
-            : dObj.toLocaleDateString('en-US', {
-                weekday: 'short',
-                month: 'short',
-                day: 'numeric'
-              });
-      weekRows.push({
-        dayLabel,
-        dateIso: sch.isoDate,
-        dayOfYear: sch.dayOfYear,
-        decl: sch.declinationDeg,
-        fajr: sch.fajr.time24,
-        sunrise: sch.sunrise.time24,
-        dohor: sch.dhuhr.time24,
-        sunset: sch.sunset.time24,
-        maghrib: sch.maghrib.time24,
-        isToday: i === 0
-      });
-    }
-
-    const preOptions = [0, 5, 10, 15, 20];
-
-    body.innerHTML = `
-      <div class="prayer-sheet-hero">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap">
-          <div>
-            <div style="font-size:11px;font-weight:800;color:var(--brass-bright);text-transform:uppercase;letter-spacing:0.06em">
-              🕌 Next Shia Prayer · ${esc(today.locationName)}
-            </div>
-            <div style="font-size:20px;font-weight:800;margin-top:2px">
-              ${nxt ? `${nxt.icon} ${esc(nxt.label)} — ${esc(nxt.arabic)} at <span class="tabular" style="color:var(--emerald)">${esc(nxt.time24)}</span>` : 'Calculating…'}
-            </div>
-            <div style="font-size:12px;color:var(--text-secondary);margin-top:2px">
-              ⏳ Countdown: <strong class="tabular" style="color:var(--text-primary)">in ${esc(cd)}</strong>
-              · Sunrise <span class="tabular">${esc(today.sunrise.time24)}</span>
-              · Sunset <span class="tabular">${esc(today.sunset.time24)}</span>
-              · Midnight <span class="tabular">${esc(today.midnight.time24)}</span>
-            </div>
-          </div>
-
-          <div style="display:flex;gap:6px;flex-wrap:wrap">
-            <button type="button" class="mini-chip ${cfg.enabled ? 'active' : ''}" id="btn-prayer-master-toggle">
-              ${cfg.enabled ? '🔔 Master Alerts: ON' : '🔕 Master Alerts: OFF'}
-            </button>
-            <button type="button" class="mini-chip ${cfg.chime ? 'active' : ''}" id="btn-prayer-sound-toggle">
-              ${cfg.chime ? '🔊 Chime: ON' : '🔇 Chime: OFF'}
-            </button>
-          </div>
-        </div>
-
-        <div style="display:flex;gap:8px;flex-wrap:wrap;font-size:11px;color:var(--text-muted);padding-top:4px;border-top:1px solid var(--border-subtle)">
-          <span>📅 Date: <strong class="tabular">${esc(today.isoDate)}</strong> (Day <strong>#${today.dayOfYear}/${today.daysInYear}</strong>)</span>
-          <span>☀️ Solar Declination δ: <strong class="tabular">${today.declinationDeg >= 0 ? '+' : ''}${today.declinationDeg}°</strong></span>
-          <span>⏱️ Equation of Time: <strong class="tabular">${today.eqtMinutes >= 0 ? '+' : ''}${today.eqtMinutes}m</strong></span>
-          <span>📱 Push Devices Armed: <strong style="color:var(--emerald)">${activeSubsCount}</strong></span>
-        </div>
-      </div>
-
-      <div class="prayer-cards-grid">
-        ${cardsHtml}
-      </div>
-
-      <div class="prayer-loc-box">
-        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
-          <div>
-            <div style="font-size:12.5px;font-weight:800">📍 Location &amp; Push Delivery</div>
-            <div style="font-size:11px;color:var(--text-muted)">
-              Active: <strong>${esc(cfg.locationName)}</strong> (<span class="tabular">${cfg.lat.toFixed(4)}°, ${cfg.lng.toFixed(4)}°</span> · ${esc(cfg.timeZone)})
-            </div>
-          </div>
-          <div style="display:flex;gap:6px;flex-wrap:wrap">
-            <button type="button" class="t-act-btn primary" id="btn-prayer-gps">📍 Auto-Detect GPS</button>
-            <button type="button" class="t-act-btn wa" id="btn-prayer-test-push">📲 Send Test Prayer Push</button>
-            <button type="button" class="t-act-btn" id="btn-prayer-sub-device">🔔 Enable This Device</button>
-          </div>
-        </div>
-
-        <div style="font-size:11px;color:var(--text-secondary);font-weight:700">Quick City Presets:</div>
-        <div class="horiz-pill-strip" style="flex-wrap:wrap">
-          ${PRAYER_LOCATION_PRESETS.map((p) => {
-            const isMatch = Math.abs(p.lat - cfg.lat) < 0.03 && Math.abs(p.lng - cfg.lng) < 0.03;
-            return `
-              <button type="button" class="mini-chip ${isMatch ? 'active' : ''}" data-prayer-preset="${p.id}">
-                ${esc(p.short)}
-              </button>
-            `;
-          }).join('')}
-        </div>
-
-        <form id="prayer-custom-loc-form" style="display:grid;grid-template-columns:1.3fr 0.8fr 0.8fr 1.1fr auto;gap:6px;align-items:center">
-          <input type="text" id="prayer-loc-label" value="${esc(cfg.locationName)}" placeholder="City / Label" style="padding:6px 8px;border-radius:7px;background:var(--bg-ink);border:1px solid var(--border-subtle);font-size:12px">
-          <input type="number" step="0.0001" id="prayer-loc-lat" value="${cfg.lat}" placeholder="Lat" required style="padding:6px 8px;border-radius:7px;background:var(--bg-ink);border:1px solid var(--border-subtle);font-size:12px">
-          <input type="number" step="0.0001" id="prayer-loc-lng" value="${cfg.lng}" placeholder="Lng" required style="padding:6px 8px;border-radius:7px;background:var(--bg-ink);border:1px solid var(--border-subtle);font-size:12px">
-          <input type="text" id="prayer-loc-tz" value="${esc(cfg.timeZone)}" placeholder="Timezone (e.g. Asia/Beirut)" required style="padding:6px 8px;border-radius:7px;background:var(--bg-ink);border:1px solid var(--border-subtle);font-size:12px">
-          <button type="submit" class="capture-submit-btn" style="padding:6px 10px;font-size:11.5px">Save</button>
-        </form>
-
-        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;padding-top:4px;border-top:1px solid var(--border-subtle)">
-          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
-            <span style="font-size:11px;font-weight:700;color:var(--text-secondary)">Shia Angle Method:</span>
-            ${SHIA_METHODS.map(
-              (m) => `
-              <button type="button" class="mini-chip ${cfg.method === m.id ? 'active' : ''}" data-prayer-method="${m.id}" title="${esc(m.label)}">
-                ${esc(m.short)}
-              </button>
-            `
-            ).join('')}
-          </div>
-
-          <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">
-            <span style="font-size:11px;font-weight:700;color:var(--text-secondary)">Pre-Reminder:</span>
-            ${preOptions
-              .map(
-                (mins) => `
-              <button type="button" class="mini-chip ${cfg.preRemindMin === mins ? 'active' : ''}" data-prayer-pre="${mins}">
-                ${mins === 0 ? 'Exact Only' : `${mins}m before`}
-              </button>
-            `
-              )
-              .join('')}
-          </div>
-        </div>
-      </div>
-
-      <div class="prayer-loc-box">
-        <div style="font-size:12px;font-weight:800">📅 7-Day Shia Prayer Schedule (Day-of-Year Solar Progression)</div>
-        <div style="overflow-x:auto">
-          <table class="prayer-week-table">
-            <thead>
-              <tr>
-                <th>Day</th>
-                <th>Day #</th>
-                <th>🌅 Fajr</th>
-                <th>🌄 Sunrise</th>
-                <th>☀️ Dohor</th>
-                <th>🌇 Sunset</th>
-                <th>🌙 Maghrib</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${weekRows
-                .map(
-                  (r) => `
-                <tr class="${r.isToday ? 'today-row' : ''}">
-                  <td>${esc(r.dayLabel)}</td>
-                  <td class="tabular">#${r.dayOfYear} (${r.decl >= 0 ? '+' : ''}${r.decl}°)</td>
-                  <td class="tabular" style="color:var(--emerald)">${esc(r.fajr)}</td>
-                  <td class="tabular" style="color:var(--text-muted)">${esc(r.sunrise)}</td>
-                  <td class="tabular" style="color:var(--brass-bright)">${esc(r.dohor)}</td>
-                  <td class="tabular" style="color:var(--text-muted)">${esc(r.sunset)}</td>
-                  <td class="tabular" style="color:var(--emerald)">${esc(r.maghrib)}</td>
-                </tr>
-              `
-                )
-                .join('')}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    `;
-
-    backdrop.hidden = false;
-  }
-
   function updateDockBadges() {
-    const active = state.reminders.filter((r) => !r.completed);
-    const timersCnt = state.reminders.filter(isTimerItem).length;
+    const active = state.reminders.filter((r) => !r.completed && !r.deleted);
     const delCnt = state.reminders.filter(isDelegatedItem).length;
 
     const setBadge = (id, count) => {
@@ -3514,13 +3502,23 @@
         el.hidden = true;
       }
     };
-    setBadge('dock-badge-radar', active.length);
-    setBadge('dock-badge-timers', timersCnt);
+    setBadge('dock-badge-planning', active.length);
+    setBadge('dock-badge-tasks', active.length);
     setBadge('dock-badge-delegated', delCnt);
-    setBadge('dock-badge-board', active.length);
+  }
+
+  function normalizeCommandTab(rawTab) {
+    const t = String(rawTab || '').trim().toLowerCase();
+    if (t === 'radar' || t === 'board' || t === 'planning') return 'planning';
+    if (t === 'timers' || t === 'tasks' || t === 'discipline') return 'tasks';
+    if (t === 'delegated' || t === 'delegation') return 'delegated';
+    if (t === 'score') return 'score';
+    if (t === 'prayers' || t === 'prayer') return 'prayers';
+    return 'planning';
   }
 
   function renderAll() {
+    state.activeTab = normalizeCommandTab(state.activeTab);
     document.documentElement.setAttribute('data-theme', state.theme);
     const metaTheme = document.getElementById('meta-theme-color');
     if (metaTheme) {
@@ -3539,11 +3537,11 @@
       b.classList.toggle('active', b.getAttribute('data-tab') === state.activeTab);
     }
 
-    if (state.activeTab === 'radar') renderRadarView();
-    else if (state.activeTab === 'timers') renderTimersView();
+    if (state.activeTab === 'planning') renderPlanningView();
+    else if (state.activeTab === 'tasks') renderTasksView();
     else if (state.activeTab === 'delegated') renderDelegatedView();
-    else if (state.activeTab === 'board') renderBoardView();
     else if (state.activeTab === 'score') renderScoreView();
+    else if (state.activeTab === 'prayers') renderPrayersView();
 
     if (state.openClusterSheetId && !document.getElementById('sheet-backdrop')?.hidden) {
       openClusterSheet(state.openClusterSheetId);
@@ -3749,9 +3747,10 @@
       renderAll();
     });
 
-    // Top HUD Shia Prayer Pill -> open Prayer Sheet
+    // Top HUD Shia Prayer Pill -> switch to Prayers tab
     document.getElementById('btn-prayer-hud')?.addEventListener('click', () => {
-      openPrayerSheet();
+      state.activeTab = 'prayers';
+      renderAll();
     });
 
     // Top HUD 10-Chip Quick Habit Strip
@@ -3817,15 +3816,154 @@
     document.getElementById('cmd-bottom-dock')?.addEventListener('click', (e) => {
       const btn = e.target.closest('[data-tab]');
       if (!btn) return;
-      state.activeTab = btn.getAttribute('data-tab');
+      state.activeTab = normalizeCommandTab(btn.getAttribute('data-tab'));
       renderAll();
     });
 
+    // Shared Prayer Controls handler (used in #view-prayers and optional sheet)
+    const handlePrayerControlClick = async (e) => {
+      if (e.target.closest('#btn-prayer-master-toggle')) {
+        const nextEnabled = !state.prayerConfig.enabled;
+        updatePrayerConfig({ enabled: nextEnabled });
+        showToast(nextEnabled ? '🕌 Shia Prayer Notifications Enabled' : '🔕 Shia Prayer Notifications Paused');
+        return true;
+      }
+      if (e.target.closest('#btn-prayer-sound-toggle')) {
+        const nextSound = !state.prayerConfig.chime;
+        if (nextSound) playPrayerChime();
+        updatePrayerConfig({ chime: nextSound });
+        showToast(nextSound ? '🔊 Spiritual Prayer Chime On' : '🔇 Prayer Chime Muted');
+        return true;
+      }
+      if (e.target.closest('#btn-prayer-gps')) {
+        detectPrayerLocationGps(false);
+        return true;
+      }
+      if (e.target.closest('#btn-prayer-test-push')) {
+        await sendTestPrayerPush();
+        return true;
+      }
+      if (e.target.closest('#btn-prayer-sub-device')) {
+        await subscribeCurrentBrowserPush();
+        renderAll();
+        return true;
+      }
+      const pToggle = e.target.closest('[data-prayer-toggle]');
+      if (pToggle) {
+        const pId = pToggle.getAttribute('data-prayer-toggle');
+        const keyMap = { fajr: 'notifyFajr', dhuhr: 'notifyDhuhr', maghrib: 'notifyMaghrib' };
+        const cfgKey = keyMap[pId] || 'notifyFajr';
+        const cur = state.prayerConfig[cfgKey] !== false;
+        updatePrayerConfig({
+          enabled: true,
+          [cfgKey]: !cur
+        });
+        showToast(`${!cur ? '🔔 Enabled' : '🔕 Muted'} ${pId.toUpperCase()} prayer alert`);
+        return true;
+      }
+      const pAdj = e.target.closest('[data-prayer-adj]');
+      if (pAdj) {
+        const [pId, deltaStr] = pAdj.getAttribute('data-prayer-adj').split(':');
+        const delta = Number(deltaStr) || 0;
+        const offMap = { fajr: 'fajrOffsetMin', dhuhr: 'dhuhrOffsetMin', maghrib: 'maghribOffsetMin' };
+        const offKey = offMap[pId] || 'fajrOffsetMin';
+        const cur = Number(state.prayerConfig[offKey] || 0);
+        const nextVal = Math.max(-20, Math.min(20, cur + delta));
+        updatePrayerConfig({
+          [offKey]: nextVal
+        });
+        return true;
+      }
+      const pPreset = e.target.closest('[data-prayer-preset]');
+      if (pPreset) {
+        const prId = pPreset.getAttribute('data-prayer-preset');
+        const found = PRAYER_LOCATION_PRESETS.find((p) => p.id === prId);
+        if (found) {
+          updatePrayerConfig({
+            lat: found.lat,
+            lng: found.lng,
+            locationName: found.label,
+            timeZone: found.timeZone,
+            autoGps: false
+          });
+          showToast(`📍 Prayer location set to ${found.label}`);
+        }
+        return true;
+      }
+      const pMethod = e.target.closest('[data-prayer-method]');
+      if (pMethod) {
+        const mId = pMethod.getAttribute('data-prayer-method');
+        const foundM = SHIA_METHODS.find((m) => m.id === mId);
+        if (foundM) {
+          updatePrayerConfig({ method: foundM.id });
+          showToast(`🕌 Calculation set to ${foundM.short}`);
+        }
+        return true;
+      }
+      const pPre = e.target.closest('[data-prayer-pre]');
+      if (pPre) {
+        const mins = Number(pPre.getAttribute('data-prayer-pre')) || 0;
+        updatePrayerConfig({ preRemindMin: mins });
+        showToast(mins > 0 ? `⏳ Pre-reminder set to ${mins}m before prayer` : '🕌 Exact prayer time alerts only');
+        return true;
+      }
+      return false;
+    };
+
+    const handleCustomLocSubmit = (e) => {
+      if (e.target.id === 'prayer-custom-loc-form') {
+        e.preventDefault();
+        const label = document.getElementById('prayer-loc-label')?.value?.trim() || 'Custom Location';
+        const lat = Number(document.getElementById('prayer-loc-lat')?.value);
+        const lng = Number(document.getElementById('prayer-loc-lng')?.value);
+        const tz = document.getElementById('prayer-loc-tz')?.value?.trim() || 'Asia/Beirut';
+        if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+          showToast('Please enter valid Latitude and Longitude coordinates');
+          return true;
+        }
+        updatePrayerConfig({
+          locationName: label,
+          lat: Number(lat.toFixed(4)),
+          lng: Number(lng.toFixed(4)),
+          timeZone: tz,
+          autoGps: false
+        });
+        showToast(`📍 Saved custom location: ${label} (${lat.toFixed(3)}°, ${lng.toFixed(3)}°)`);
+        return true;
+      }
+      return false;
+    };
+
     // Delegated clicks inside Main Stage & Slide-Up Sheet
-    const handleTaskInteraction = (e) => {
+    const handleTaskInteraction = async (e) => {
+      if (await handlePrayerControlClick(e)) return;
+
       const openPrayerTrigger = e.target.closest('[data-open-prayer]');
       if (openPrayerTrigger) {
-        openPrayerSheet();
+        state.activeTab = 'prayers';
+        renderAll();
+        return;
+      }
+
+      const planModeBtn = e.target.closest('[data-planning-mode]');
+      if (planModeBtn) {
+        state.planningMode = planModeBtn.getAttribute('data-planning-mode') || 'radar';
+        renderPlanningView();
+        return;
+      }
+
+      const gotoTasksBtn = e.target.closest('[data-goto-tasks-filter]');
+      if (gotoTasksBtn) {
+        state.taskFilter = gotoTasksBtn.getAttribute('data-goto-tasks-filter') || 'all';
+        state.activeTab = 'tasks';
+        renderAll();
+        return;
+      }
+
+      const taskFilterBtn = e.target.closest('[data-task-filter]');
+      if (taskFilterBtn) {
+        state.taskFilter = taskFilterBtn.getAttribute('data-task-filter') || 'all';
+        renderTasksView();
         return;
       }
 
@@ -3931,12 +4069,6 @@
       }
 
       // Filter pills
-      const tf = e.target.closest('[data-timer-filter]');
-      if (tf) {
-        state.timerFilter = tf.getAttribute('data-timer-filter');
-        renderTimersView();
-        return;
-      }
       const dbu = e.target.closest('[data-del-bu]');
       if (dbu) {
         state.delegatedBuFilter = dbu.getAttribute('data-del-bu');
@@ -3952,12 +4084,7 @@
       const bf = e.target.closest('[data-board-filter]');
       if (bf) {
         state.boardFilter = bf.getAttribute('data-board-filter');
-        renderBoardView();
-        return;
-      }
-      if (e.target.closest('#btn-toggle-subtopic-group')) {
-        state.boardGroupBy = state.boardGroupBy === 'subtopic' ? 'cluster' : 'subtopic';
-        renderBoardView();
+        renderPlanningView();
         return;
       }
       if (e.target.closest('#btn-manage-roster')) {
@@ -3998,6 +4125,7 @@
     };
 
     document.getElementById('cmd-stage')?.addEventListener('click', handleTaskInteraction);
+    document.getElementById('cmd-stage')?.addEventListener('submit', handleCustomLocSubmit);
 
     // Sheet interactions
     const backdrop = document.getElementById('sheet-backdrop');
@@ -4013,99 +4141,7 @@
     });
 
     document.getElementById('sheet-body')?.addEventListener('click', async (e) => {
-      // Prayer Sheet handlers
-      if (e.target.closest('#btn-prayer-master-toggle')) {
-        const nextEnabled = !state.prayerConfig.enabled;
-        updatePrayerConfig({ enabled: nextEnabled });
-        openPrayerSheet();
-        showToast(nextEnabled ? '🕌 Shia Prayer Notifications Enabled' : '🔕 Shia Prayer Notifications Paused');
-        return;
-      }
-      if (e.target.closest('#btn-prayer-sound-toggle')) {
-        const nextSound = !state.prayerConfig.chime;
-        if (nextSound) playPrayerChime();
-        updatePrayerConfig({ chime: nextSound });
-        openPrayerSheet();
-        showToast(nextSound ? '🔊 Spiritual Prayer Chime On' : '🔇 Prayer Chime Muted');
-        return;
-      }
-      if (e.target.closest('#btn-prayer-gps')) {
-        detectPrayerLocationGps(false);
-        return;
-      }
-      if (e.target.closest('#btn-prayer-test-push')) {
-        await sendTestPrayerPush();
-        return;
-      }
-      if (e.target.closest('#btn-prayer-sub-device')) {
-        await subscribeCurrentBrowserPush();
-        openPrayerSheet();
-        return;
-      }
-      const pToggle = e.target.closest('[data-prayer-toggle]');
-      if (pToggle) {
-        const pId = pToggle.getAttribute('data-prayer-toggle');
-        const keyMap = { fajr: 'notifyFajr', dhuhr: 'notifyDhuhr', maghrib: 'notifyMaghrib' };
-        const cfgKey = keyMap[pId] || 'notifyFajr';
-        const cur = state.prayerConfig[cfgKey] !== false;
-        updatePrayerConfig({
-          enabled: true,
-          [cfgKey]: !cur
-        });
-        openPrayerSheet();
-        showToast(`${!cur ? '🔔 Enabled' : '🔕 Muted'} ${pId.toUpperCase()} prayer alert`);
-        return;
-      }
-      const pAdj = e.target.closest('[data-prayer-adj]');
-      if (pAdj) {
-        const [pId, deltaStr] = pAdj.getAttribute('data-prayer-adj').split(':');
-        const delta = Number(deltaStr) || 0;
-        const offMap = { fajr: 'fajrOffsetMin', dhuhr: 'dhuhrOffsetMin', maghrib: 'maghribOffsetMin' };
-        const offKey = offMap[pId] || 'fajrOffsetMin';
-        const cur = Number(state.prayerConfig[offKey] || 0);
-        const nextVal = Math.max(-20, Math.min(20, cur + delta));
-        updatePrayerConfig({
-          [offKey]: nextVal
-        });
-        openPrayerSheet();
-        return;
-      }
-      const pPreset = e.target.closest('[data-prayer-preset]');
-      if (pPreset) {
-        const prId = pPreset.getAttribute('data-prayer-preset');
-        const found = PRAYER_LOCATION_PRESETS.find((p) => p.id === prId);
-        if (found) {
-          updatePrayerConfig({
-            lat: found.lat,
-            lng: found.lng,
-            locationName: found.label,
-            timeZone: found.timeZone,
-            autoGps: false
-          });
-          openPrayerSheet();
-          showToast(`📍 Prayer location set to ${found.label}`);
-        }
-        return;
-      }
-      const pMethod = e.target.closest('[data-prayer-method]');
-      if (pMethod) {
-        const mId = pMethod.getAttribute('data-prayer-method');
-        const foundM = SHIA_METHODS.find((m) => m.id === mId);
-        if (foundM) {
-          updatePrayerConfig({ method: foundM.id });
-          openPrayerSheet();
-          showToast(`🕌 Calculation set to ${foundM.short}`);
-        }
-        return;
-      }
-      const pPre = e.target.closest('[data-prayer-pre]');
-      if (pPre) {
-        const mins = Number(pPre.getAttribute('data-prayer-pre')) || 0;
-        updatePrayerConfig({ preRemindMin: mins });
-        openPrayerSheet();
-        showToast(mins > 0 ? `⏳ Pre-reminder set to ${mins}m before prayer` : '🕌 Exact prayer time alerts only');
-        return;
-      }
+      if (await handlePrayerControlClick(e)) return;
 
       const quickAdd = e.target.closest('#sheet-quick-add');
       if (quickAdd) {
@@ -4145,27 +4181,7 @@
     });
 
     document.getElementById('sheet-body')?.addEventListener('submit', (e) => {
-      if (e.target.id === 'prayer-custom-loc-form') {
-        e.preventDefault();
-        const label = document.getElementById('prayer-loc-label')?.value?.trim() || 'Custom Location';
-        const lat = Number(document.getElementById('prayer-loc-lat')?.value);
-        const lng = Number(document.getElementById('prayer-loc-lng')?.value);
-        const tz = document.getElementById('prayer-loc-tz')?.value?.trim() || 'Asia/Beirut';
-        if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
-          showToast('Please enter valid Latitude and Longitude coordinates');
-          return;
-        }
-        updatePrayerConfig({
-          locationName: label,
-          lat: Number(lat.toFixed(4)),
-          lng: Number(lng.toFixed(4)),
-          timeZone: tz,
-          autoGps: false
-        });
-        openPrayerSheet();
-        showToast(`📍 Saved custom location: ${label} (${lat.toFixed(3)}°, ${lng.toFixed(3)}°)`);
-        return;
-      }
+      if (handleCustomLocSubmit(e)) return;
       if (e.target.id === 'roster-add-form') {
         e.preventDefault();
         const name = document.getElementById('roster-name')?.value?.trim();
@@ -4208,20 +4224,15 @@
   function applyCommandNotificationNav(raw) {
     const data = raw && typeof raw.data === 'object' ? raw.data : raw;
     if (!data || typeof data !== 'object') return false;
-    const validTabs = ['radar', 'timers', 'delegated', 'board', 'score'];
-    const targetTab = validTabs.includes(data.tab)
-      ? data.tab
-      : data.taskId
-        ? 'timers'
-        : '';
-    if (targetTab) {
-      state.activeTab = targetTab;
+    if (data.openPrayer || data.tab === 'prayers' || data.tab === 'prayer') {
+      state.activeTab = 'prayers';
+    } else if (data.tab) {
+      state.activeTab = normalizeCommandTab(data.tab);
+    } else if (data.taskId) {
+      state.activeTab = 'tasks';
     }
     if (data.taskId) {
       state.expandedRowId = String(data.taskId);
-    }
-    if (data.openPrayer) {
-      openPrayerSheet();
     }
     renderAll();
     if (data.taskId) {
@@ -4272,7 +4283,7 @@
         }
       });
       navigator.serviceWorker
-        .register('./sw.js?v=7', { updateViaCache: 'none' })
+        .register('./sw.js?v=8', { updateViaCache: 'none' })
         .then(async (reg) => {
           reg.update().catch(() => {});
           if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
@@ -4311,10 +4322,12 @@
     const initTab = params.get('tab');
     const navTaskId = params.get('taskId') || params.get('rem');
     const prayerParam = params.get('prayer');
-    if (initTab && ['radar', 'timers', 'delegated', 'board', 'score'].includes(initTab)) {
-      state.activeTab = initTab;
+    if (prayerParam === '1') {
+      state.activeTab = 'prayers';
+    } else if (initTab) {
+      state.activeTab = normalizeCommandTab(initTab);
     } else if (navTaskId) {
-      state.activeTab = 'timers';
+      state.activeTab = 'tasks';
     }
     if (navTaskId) {
       state.expandedRowId = navTaskId;
@@ -4325,12 +4338,8 @@
       } catch {}
     }
 
-    const theoLink = document.querySelector('.hud-theo-link');
-    if (theoLink && window.location.pathname.includes('/theo/command')) {
-      theoLink.setAttribute('href', '../');
-    }
     window.addEventListener('resize', () => {
-      if (state.activeTab === 'radar' && !isFormControlFocused()) renderRadarView();
+      if (state.activeTab === 'planning' && !isFormControlFocused()) renderPlanningView();
     });
     window.addEventListener('storage', (e) => {
       if (e.key === STORAGE_KEY || e.key === LEGACY_LEDGER_KEY) {
@@ -4363,9 +4372,6 @@
     bindOwnerEvents();
     renderAll();
 
-    if (prayerParam === '1') {
-      openPrayerSheet();
-    }
     await consumePendingCommandNav();
 
     // Silent GPS refresh if geolocation permission is already granted

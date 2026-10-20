@@ -1,14 +1,14 @@
-/* THEO Command — Executive Planner, Wait-Timer, Org Delegation, Shia Prayer Alerts & 100% Discipline Service Worker v7 */
-const CACHE_NAME = 'theo-command-v7';
+/* THEO Command — Standalone Executive PWA for Planning, Tasks, Delegation, 100% Score & Shia Prayer Times (Service Worker v8) */
+const CACHE_NAME = 'theo-command-v8';
 const NAV_CACHE = 'theo-cmd-nav-handoff-v1';
 const PENDING_NAV_URL = './__theo_cmd_pending_nav.json';
 const APP_SHELL = [
   './',
   './index.html',
-  './css/command.css?v=7',
-  './js/endpoints.js?v=7',
-  './js/app.js?v=7',
-  './manifest.json',
+  './css/command.css?v=8',
+  './js/endpoints.js?v=8',
+  './js/app.js?v=8',
+  './manifest.json?v=8',
   './icon.svg',
   './icon-180.png',
   './icon-192.png',
@@ -37,23 +37,41 @@ self.addEventListener('activate', (event) => {
   );
 });
 
+function normalizeCmdTab(rawTab) {
+  const t = String(rawTab || '').trim().toLowerCase();
+  if (t === 'radar' || t === 'board' || t === 'planning') return 'planning';
+  if (t === 'timers' || t === 'tasks' || t === 'discipline') return 'tasks';
+  if (t === 'delegated' || t === 'delegation') return 'delegated';
+  if (t === 'score') return 'score';
+  if (t === 'prayers' || t === 'prayer') return 'prayers';
+  return '';
+}
+
 function buildCmdDeepLink(d) {
-  const openPrayer = Boolean(d.openPrayer || (d.tag && String(d.tag).includes('prayer')));
-  const tab = String(d.tab || (d.taskId ? 'timers' : 'radar')).trim();
-  const taskId = String(d.taskId || '').trim();
+  const openPrayer = Boolean(
+    d.openPrayer ||
+      d.tab === 'prayers' ||
+      d.tab === 'prayer' ||
+      (d.tag && String(d.tag).includes('prayer'))
+  );
+  const taskId = String(d.taskId || d.reminderId || '').trim();
+  const normalizedTab = openPrayer
+    ? 'prayers'
+    : normalizeCmdTab(d.tab) || (taskId ? 'tasks' : 'planning');
+
   let url = d.url && d.url !== './' ? String(d.url) : '';
-  if (!url) {
+  if (!url || url.includes('?prayer=1') || url.includes('tab=discipline')) {
     if (openPrayer) {
-      url = './?prayer=1';
+      url = './?tab=prayers';
     } else if (taskId) {
-      url = `./?tab=${encodeURIComponent(tab)}&taskId=${encodeURIComponent(taskId)}`;
+      url = `./?tab=${encodeURIComponent(normalizedTab)}&taskId=${encodeURIComponent(taskId)}`;
     } else {
-      url = `./?tab=${encodeURIComponent(tab)}`;
+      url = `./?tab=${encodeURIComponent(normalizedTab)}`;
     }
   }
   return {
     url,
-    tab,
+    tab: normalizedTab,
     taskId,
     openPrayer,
     ts: Date.now()
