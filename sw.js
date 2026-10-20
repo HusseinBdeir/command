@@ -1,18 +1,18 @@
-/* Planner — Standalone Executive & Personal PWA for Planning, Tasks, Delegation, 100% Score & Shia Prayer Times (Service Worker v9) */
-const CACHE_NAME = 'bhf-planner-v9';
+/* Planner — Standalone Executive & Personal PWA for Planning, Tasks, Delegation, 100% Score & Shia Prayer Times (Service Worker v10) */
+const CACHE_NAME = 'bhf-planner-v10';
 const NAV_CACHE = 'theo-cmd-nav-handoff-v1';
 const PENDING_NAV_URL = './__theo_cmd_pending_nav.json';
 const APP_SHELL = [
   './',
   './index.html',
-  './css/command.css?v=9',
-  './js/endpoints.js?v=9',
-  './js/app.js?v=9',
-  './manifest.json?v=9',
-  './icon.svg',
-  './icon-180.png',
-  './icon-192.png',
-  './icon-512.png'
+  './css/command.css?v=10',
+  './js/endpoints.js?v=10',
+  './js/app.js?v=10',
+  './manifest.json?v=10',
+  './icon.svg?v=10',
+  './icon-180.png?v=10',
+  './icon-192.png?v=10',
+  './icon-512.png?v=10'
 ];
 
 self.addEventListener('install', (event) => {
@@ -95,7 +95,7 @@ function isCommandClientUrl(rawUrl) {
   try {
     const u = new URL(rawUrl);
     if (u.origin !== self.location.origin) return false;
-    return u.pathname.includes('/command');
+    return u.pathname.includes('/planner') || u.pathname.includes('/command');
   } catch {
     return false;
   }

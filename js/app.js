@@ -1990,7 +1990,7 @@
   }
 
   function getDelegationMagicUrl(item) {
-    const base = window.location.origin + window.location.pathname.replace(/index\.html$/, '');
+    const base = 'https://husseinbdeir.github.io/planner/';
     return `${base}?task=${encodeURIComponent(item.id)}&token=${encodeURIComponent(item.taskToken || '')}`;
   }
 
@@ -4283,7 +4283,7 @@
         }
       });
       navigator.serviceWorker
-        .register('./sw.js?v=9', { updateViaCache: 'none' })
+        .register('./sw.js?v=10', { updateViaCache: 'none' })
         .then(async (reg) => {
           reg.update().catch(() => {});
           if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
