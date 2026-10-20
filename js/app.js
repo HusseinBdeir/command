@@ -4283,7 +4283,7 @@
         }
       });
       navigator.serviceWorker
-        .register('./sw.js?v=10', { updateViaCache: 'none' })
+        .register('./sw.js?v=11', { updateViaCache: 'none' })
         .then(async (reg) => {
           reg.update().catch(() => {});
           if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
