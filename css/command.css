@@ -28,7 +28,7 @@ html[data-theme="light"] {
   --border-strong: rgba(181, 123, 30, 0.35);
   --shadow-sm: 0 2px 10px rgba(15, 23, 42, 0.06);
   --shadow-lg: 0 12px 32px rgba(15, 23, 42, 0.15);
-  --dock-h: 62px;
+  --dock-h: 76px;
 }
 
 html[data-theme="dark"] {
@@ -1302,13 +1302,19 @@ button {
   flex: 0 0 auto;
   width: 100%;
   min-height: 0;
-  padding: 5px max(8px, env(safe-area-inset-left, 8px)) 10px max(8px, env(safe-area-inset-right, 8px));
+  padding: 6px max(8px, env(safe-area-inset-left, 8px)) 22px max(8px, env(safe-area-inset-right, 8px));
   background: var(--bg-ink);
   border-top: 1px solid var(--border-subtle);
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 4px;
   z-index: 40;
+}
+
+@media (min-width: 769px) {
+  html:not(.ios-standalone) .cmd-bottom-dock {
+    padding-bottom: 10px;
+  }
 }
 
 .cmd-dock-btn {
@@ -1430,7 +1436,7 @@ button {
 }
 
 .sheet-body {
-  padding: 12px 16px 24px 16px;
+  padding: 12px 16px max(28px, calc(env(safe-area-inset-bottom, 0px) + 12px)) 16px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
