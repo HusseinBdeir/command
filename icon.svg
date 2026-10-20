@@ -1,119 +1,86 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Planner">
   <defs>
-    <!-- Deep Architectural Obsidian-Navy Squircle Background (matches Fitness & THEO) -->
-    <radialGradient id="bgPlate" cx="48%" cy="32%" r="75%">
-      <stop offset="0%" stop-color="#162E58"/>
+    <radialGradient id="bgGlowA" cx="50%" cy="38%" r="70%">
+      <stop offset="0%" stop-color="#13284C"/>
       <stop offset="55%" stop-color="#0B1730"/>
-      <stop offset="100%" stop-color="#050B18"/>
+      <stop offset="100%" stop-color="#060C1A"/>
     </radialGradient>
-
-    <!-- Subtle Ambient Glow behind the Planner Card -->
-    <radialGradient id="ambientGlow" cx="50%" cy="48%" r="50%">
-      <stop offset="0%" stop-color="#38BDF8" stop-opacity="0.20"/>
-      <stop offset="55%" stop-color="#EAB308" stop-opacity="0.09"/>
+    <linearGradient id="ringBrass" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0%" stop-color="#B4781E"/>
+      <stop offset="50%" stop-color="#D9A54A"/>
+      <stop offset="100%" stop-color="#FDE68A"/>
+    </linearGradient>
+    <linearGradient id="ringEmerald" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0%" stop-color="#059669"/>
+      <stop offset="55%" stop-color="#10B981"/>
+      <stop offset="100%" stop-color="#6EE7B7"/>
+    </linearGradient>
+    <linearGradient id="vecGrad" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0%" stop-color="#F4F2EE"/>
+      <stop offset="50%" stop-color="#FFFFFF"/>
+      <stop offset="100%" stop-color="#FFFFFF"/>
+    </linearGradient>
+    <radialGradient id="coreHaloA" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#D9A54A" stop-opacity="0.22"/>
+      <stop offset="65%" stop-color="#10B981" stop-opacity="0.08"/>
       <stop offset="100%" stop-color="#0B1730" stop-opacity="0"/>
     </radialGradient>
-
-    <!-- Tactile Warm-Ivory Paper Card Surface -->
-    <linearGradient id="cardPaper" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#FFFFFF"/>
-      <stop offset="70%" stop-color="#F8FAFC"/>
-      <stop offset="100%" stop-color="#E2E8F0"/>
-    </linearGradient>
-
-    <!-- Executive Liquid-Brass Planner Header Crown -->
-    <linearGradient id="brassHeader" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#FDE68A"/>
-      <stop offset="38%" stop-color="#F59E0B"/>
-      <stop offset="78%" stop-color="#D97706"/>
-      <stop offset="100%" stop-color="#B45309"/>
-    </linearGradient>
-
-    <!-- Sculpted Silver-Ivory Binder Clasp Gradient -->
-    <linearGradient id="lugMetal" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#FFFFFF"/>
-      <stop offset="55%" stop-color="#F1F5F9"/>
-      <stop offset="100%" stop-color="#CBD5E1"/>
-    </linearGradient>
-
-    <!-- Emerald Completion Gradient -->
-    <linearGradient id="emeraldGrad" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#34D399"/>
-      <stop offset="55%" stop-color="#10B981"/>
-      <stop offset="100%" stop-color="#047857"/>
-    </linearGradient>
-
-    <!-- Sky-Blue Timeline Gradient -->
-    <linearGradient id="skyGrad" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#38BDF8"/>
-      <stop offset="100%" stop-color="#0284C7"/>
-    </linearGradient>
-
-    <!-- Dynamic Delegation & Action Badge Gradient -->
-    <linearGradient id="badgeGrad" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#34D399"/>
-      <stop offset="50%" stop-color="#10B981"/>
-      <stop offset="100%" stop-color="#047857"/>
-    </linearGradient>
-
-    <!-- Clip Path for the Rounded Planner Card -->
-    <clipPath id="cardClip">
-      <rect x="76" y="92" width="316" height="328" rx="66"/>
-    </clipPath>
   </defs>
 
-  <!-- 1. App Store Squircle Plate -->
-  <rect width="512" height="512" rx="112" fill="url(#bgPlate)"/>
-  <circle cx="256" cy="252" r="224" fill="url(#ambientGlow)"/>
+  <!-- Deep Architectural Obsidian-Navy Plate -->
+  <rect width="512" height="512" rx="112" fill="url(#bgGlowA)"/>
+  <circle cx="256" cy="256" r="236" fill="none" stroke="#1E293B" stroke-width="2"/>
 
-  <!-- 2. Layered Depth Shadow Stack beneath the Planner Sheet -->
-  <rect x="92" y="114" width="316" height="328" rx="66" fill="#030712" fill-opacity="0.58"/>
-  <rect x="84" y="104" width="316" height="328" rx="66" fill="#1E293B" fill-opacity="0.48"/>
-
-  <!-- 3. Main Sculpted Planner Card (Clipped for Header + Body) -->
-  <g clip-path="url(#cardClip)">
-    <!-- Warm Paper Body -->
-    <rect x="76" y="92" width="316" height="328" fill="url(#cardPaper)"/>
-
-    <!-- Liquid-Brass Top Header Crown -->
-    <rect x="76" y="92" width="316" height="88" fill="url(#brassHeader)"/>
-    <!-- Subtle Inner Bevel on Crown -->
-    <rect x="76" y="176" width="316" height="4" fill="#78350F" fill-opacity="0.28"/>
+  <!-- Precision Instrument Chronograph Ticks -->
+  <g>
+    <line x1="256.00" y1="42.00" x2="256.00" y2="26.00" stroke="#94A3B8" stroke-opacity="0.30" stroke-width="3.5" stroke-linecap="round"/>
+    <line x1="312.94" y1="43.50" x2="315.53" y2="33.84" stroke="#94A3B8" stroke-opacity="0.13" stroke-width="2" stroke-linecap="round"/>
+    <line x1="468.50" y1="199.06" x2="478.16" y2="196.47" stroke="#94A3B8" stroke-opacity="0.13" stroke-width="2" stroke-linecap="round"/>
+    <line x1="470.00" y1="256.00" x2="486.00" y2="256.00" stroke="#94A3B8" stroke-opacity="0.30" stroke-width="3.5" stroke-linecap="round"/>
+    <line x1="468.50" y1="312.94" x2="478.16" y2="315.53" stroke="#94A3B8" stroke-opacity="0.13" stroke-width="2" stroke-linecap="round"/>
+    <line x1="446.53" y1="366.00" x2="455.19" y2="371.00" stroke="#94A3B8" stroke-opacity="0.13" stroke-width="2" stroke-linecap="round"/>
+    <line x1="407.32" y1="407.32" x2="418.63" y2="418.63" stroke="#94A3B8" stroke-opacity="0.30" stroke-width="3.5" stroke-linecap="round"/>
+    <line x1="366.00" y1="446.53" x2="371.00" y2="455.19" stroke="#94A3B8" stroke-opacity="0.13" stroke-width="2" stroke-linecap="round"/>
+    <line x1="312.94" y1="468.50" x2="315.53" y2="478.16" stroke="#94A3B8" stroke-opacity="0.13" stroke-width="2" stroke-linecap="round"/>
+    <line x1="256.00" y1="470.00" x2="256.00" y2="486.00" stroke="#94A3B8" stroke-opacity="0.30" stroke-width="3.5" stroke-linecap="round"/>
+    <line x1="199.06" y1="468.50" x2="196.47" y2="478.16" stroke="#94A3B8" stroke-opacity="0.13" stroke-width="2" stroke-linecap="round"/>
+    <line x1="146.00" y1="446.53" x2="141.00" y2="455.19" stroke="#94A3B8" stroke-opacity="0.13" stroke-width="2" stroke-linecap="round"/>
+    <line x1="104.68" y1="407.32" x2="93.37" y2="418.63" stroke="#94A3B8" stroke-opacity="0.30" stroke-width="3.5" stroke-linecap="round"/>
+    <line x1="65.47" y1="366.00" x2="56.81" y2="371.00" stroke="#94A3B8" stroke-opacity="0.13" stroke-width="2" stroke-linecap="round"/>
+    <line x1="43.50" y1="312.94" x2="33.84" y2="315.53" stroke="#94A3B8" stroke-opacity="0.13" stroke-width="2" stroke-linecap="round"/>
+    <line x1="42.00" y1="256.00" x2="26.00" y2="256.00" stroke="#94A3B8" stroke-opacity="0.30" stroke-width="3.5" stroke-linecap="round"/>
+    <line x1="43.50" y1="199.06" x2="33.84" y2="196.47" stroke="#94A3B8" stroke-opacity="0.13" stroke-width="2" stroke-linecap="round"/>
+    <line x1="65.47" y1="146.00" x2="56.81" y2="141.00" stroke="#94A3B8" stroke-opacity="0.13" stroke-width="2" stroke-linecap="round"/>
+    <line x1="104.68" y1="104.68" x2="93.37" y2="93.37" stroke="#94A3B8" stroke-opacity="0.30" stroke-width="3.5" stroke-linecap="round"/>
+    <line x1="146.00" y1="65.47" x2="141.00" y2="56.81" stroke="#94A3B8" stroke-opacity="0.13" stroke-width="2" stroke-linecap="round"/>
+    <line x1="199.06" y1="43.50" x2="196.47" y2="33.84" stroke="#94A3B8" stroke-opacity="0.13" stroke-width="2" stroke-linecap="round"/>
   </g>
 
-  <!-- Planner Card Outer Specular Rim -->
-  <rect x="76" y="92" width="316" height="328" rx="66" fill="none" stroke="#FFFFFF" stroke-opacity="0.72" stroke-width="3"/>
+  <!-- Sunk Track Grooves -->
+  <circle cx="256" cy="256" r="182" fill="none" stroke="#D9A54A" stroke-opacity="0.16" stroke-width="24"/>
+  <circle cx="256" cy="256" r="144" fill="none" stroke="#10B981" stroke-opacity="0.16" stroke-width="20"/>
 
-  <!-- 4. Sculpted Metallic Calendar/Planner Binding Rings (Cleanly Anchored in Grommets) -->
-  <!-- Left Grommet + Clasp -->
-  <circle cx="164" cy="128" r="15" fill="#78350F" fill-opacity="0.45"/>
-  <rect x="152" y="64" width="24" height="66" rx="12" fill="url(#lugMetal)" stroke="#0F172A" stroke-opacity="0.22" stroke-width="2"/>
-  <!-- Right Grommet + Clasp -->
-  <circle cx="304" cy="128" r="15" fill="#78350F" fill-opacity="0.45"/>
-  <rect x="292" y="64" width="24" height="66" rx="12" fill="url(#lugMetal)" stroke="#0F172A" stroke-opacity="0.22" stroke-width="2"/>
+  <!-- Active Outer Ring: Liquid Brass (100% Discipline Score & Executive Ledger) -->
+  <path d="M 436.23 230.67 A 182 182 0 1 1 281.33 75.77" fill="none" stroke="url(#ringBrass)" stroke-width="24" stroke-linecap="round"/>
 
-  <!-- 5. Inside the Planner Card: 3 Bold Priority & Timeline Rows -->
-  <!-- Row 1: Completed / Priority Plan Item (Emerald Check + Bold Navy Bar) -->
-  <circle cx="138" cy="226" r="23" fill="url(#emeraldGrad)"/>
-  <path d="M 126.5 226.5 L 135 235 L 150.5 218.5" fill="none" stroke="#FFFFFF" stroke-width="7.5" stroke-linecap="round" stroke-linejoin="round"/>
-  <rect x="180" y="213" width="168" height="26" rx="13" fill="#0F172A"/>
+  <!-- Active Inner Ring: Emerald (Tasks, Timers & Prayer Horizon) -->
+  <path d="M 399.21 271.05 A 144 144 0 1 1 240.95 112.79" fill="none" stroke="url(#ringEmerald)" stroke-width="20" stroke-linecap="round"/>
 
-  <!-- Row 2: Active / Delegated Priority Item (Liquid-Brass Node + Structured Bar) -->
-  <circle cx="138" cy="296" r="23" fill="url(#brassHeader)"/>
-  <circle cx="138" cy="296" r="9" fill="#FFFFFF"/>
-  <rect x="180" y="283" width="136" height="26" rx="13" fill="#1E293B"/>
+  <!-- Luminous Ring Cap Highlights -->
+  <circle cx="281.33" cy="75.77" r="6.5" fill="#FEF3C7" fill-opacity="0.92"/>
+  <circle cx="240.95" cy="112.79" r="5.5" fill="#ECFDF5" fill-opacity="0.92"/>
 
-  <!-- Row 3: Scheduled / Time-Blocked Item (Sky-Blue Node + Short Bar) -->
-  <circle cx="138" cy="366" r="23" fill="url(#skyGrad)"/>
-  <circle cx="138" cy="366" r="9" fill="#FFFFFF"/>
-  <rect x="180" y="353" width="94" height="26" rx="13" fill="#475569"/>
+  <!-- Recessed Core Executive Chamber -->
+  <circle cx="256" cy="256" r="112" fill="#070E1E" stroke="#1E3A5F" stroke-width="2.5"/>
+  <circle cx="256" cy="256" r="108" fill="url(#coreHaloA)"/>
 
-  <!-- 6. Overlapping Bottom-Right Forward-Dispatch / Delegation Badge -->
-  <!-- Dark Navy Cutout Halo so the badge pops cleanly off the white card corner -->
-  <circle cx="368" cy="368" r="88" fill="#0B1730"/>
-  <!-- Outer Liquid-Brass Precision Ring + Emerald Action Core -->
-  <circle cx="368" cy="368" r="76" fill="url(#badgeGrad)" stroke="url(#brassHeader)" stroke-width="8.5"/>
-  <!-- Bold White Forward Dispatch Arrow (↗) — Execution & Delegation -->
-  <path d="M 336 400 L 396 340" fill="none" stroke="#FFFFFF" stroke-width="18.5" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M 348 340 L 396 340 L 396 388" fill="none" stroke="#FFFFFF" stroke-width="18.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Single Continuous Check-to-Forward-Dispatch Vector (✓ -> ↗) -->
+  <!-- Launches cleanly through the open 45° North-East gateway with generous air gap -->
+  <path d="M 180 252 L 232 304 L 392 120"
+        fill="none" stroke="url(#vecGrad)" stroke-width="30" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M 314 120 L 392 120 L 392 198"
+        fill="none" stroke="url(#vecGrad)" stroke-width="30" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Brass Apex Pivot Node at Check Vertex -->
+  <circle cx="232" cy="304" r="10.5" fill="#FBBF24" stroke="#070E1E" stroke-width="4"/>
 </svg>
