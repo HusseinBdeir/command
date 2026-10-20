@@ -75,8 +75,8 @@
   const VAPID_PRIVATE_JWK = {
     kty: 'EC',
     crv: 'P-256',
-    x: 'oALqBY5EVKiLph_te5Pe-hmcGB-VeYbUbNbQrWm3iFw',
-    y: '2hjsU1g8r4mf6ACCEq-mFtIz_6J4DpTzDQT3ISAoHrw',
+    x: 'oALqBY5EVKiLph_te5Le-hmcGB-VeYbUbNbQrWm3iFw',
+    y: 'NoY7FNYPK-Jn-gAghKvphbSM_-ieA6U8w0E9yEgKB68',
     d: 'MS5ta1KAESpycusDW8d1NMaj3fxc_oNO_F0V23oh5aA',
     ext: true
   };
@@ -1659,6 +1659,10 @@
                   if (r.ok) {
                     localMap[preTimerKey] = preTimerId;
                     scheduledCount++;
+                    try {
+                      localStorage.setItem(PRAYER_SCHED_KEY, JSON.stringify(localMap));
+                    } catch {}
+                    await new Promise((res) => setTimeout(res, 250));
                   }
                 } else {
                   localMap[preTimerKey] = preTimerId;
@@ -1703,6 +1707,10 @@
                 if (r.ok) {
                   localMap[timerKey] = timerId;
                   scheduledCount++;
+                  try {
+                    localStorage.setItem(PRAYER_SCHED_KEY, JSON.stringify(localMap));
+                  } catch {}
+                  await new Promise((res) => setTimeout(res, 250));
                 }
               } else {
                 localMap[timerKey] = timerId;
@@ -2230,12 +2238,12 @@
           })
         });
 
-        // Arm exact-second serverless Web Push notifications for upcoming Shia prayers (Fajr, Dohor, Maghrib)
-        await scheduleUpcomingPrayerCloudPushes(docs);
-
         if (dot) dot.className = state.bridgeOrigin ? 'sync-dot' : 'sync-dot cloud';
         if (lbl) lbl.textContent = state.bridgeOrigin ? 'Bridge+Cloud' : 'Cloud Live';
         renderAll();
+
+        // Arm exact-second serverless Web Push notifications for upcoming Shia prayers (Fajr, Dohor, Maghrib)
+        scheduleUpcomingPrayerCloudPushes(docs).catch(() => {});
       }
     } catch {}
   }
@@ -2245,8 +2253,10 @@
      ============================================================================ */
   function renderPrayerHudPill() {
     const btn = document.getElementById('btn-prayer-hud');
-    const nameEl = document.getElementById('hud-prayer-name');
-    const timeEl = document.getElementById('hud-prayer-time');
+    const iconEl = document.getElementById('prayer-hud-icon');
+    const nameEl = document.getElementById('prayer-hud-name');
+    const timeEl = document.getElementById('prayer-hud-time');
+    const cdEl = document.getElementById('prayer-hud-cd');
     if (!btn || !nameEl || !timeEl) return;
 
     const now = Date.now();
@@ -2256,8 +2266,10 @@
     if (nxt) {
       const cd = formatCountdown(nxt.epochMs, now);
       const isImminent = Boolean(status.justEntered) || (nxt.epochMs - now <= 20 * 60000 && nxt.epochMs >= now);
+      if (iconEl) iconEl.textContent = nxt.icon || '🕌';
       nameEl.textContent = nxt.label;
-      timeEl.textContent = `${nxt.time24} (${cd})`;
+      timeEl.textContent = nxt.time24;
+      if (cdEl) cdEl.textContent = `in ${cd}`;
       btn.classList.toggle('imminent', isImminent);
       btn.title = `🕌 Shia Prayer Times (${today.locationName} · Day #${today.dayOfYear})\n🌅 Fajr: ${today.fajr.time24}  |  ☀️ Dohor: ${today.dhuhr.time24}  |  🌙 Maghrib: ${today.maghrib.time24}\nNext: ${nxt.label} (${nxt.arabic}) at ${nxt.time24} (in ${cd})\nTap to configure location, GPS, or test push notifications`;
     }
