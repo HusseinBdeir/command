@@ -1879,8 +1879,8 @@
             const isPrayer = Boolean(payload.openPrayer || payload.tab === 'prayers');
             reg.showNotification(payload.title || 'Planner', {
               body: payload.body || '',
-              icon: './icon-192.png?v=12',
-              badge: './icon-192.png?v=12',
+              icon: './icon-192.png?v=13',
+              badge: './icon-192.png?v=13',
               tag: payload.tag || 'theo-cmd-notif',
               renotify: true,
               requireInteraction: Boolean(payload.requireInteraction),
@@ -5029,7 +5029,7 @@
         }
       });
       navigator.serviceWorker
-        .register('./sw.js?v=12', { updateViaCache: 'none' })
+        .register('./sw.js?v=13', { updateViaCache: 'none' })
         .then(async (reg) => {
           reg.update().catch(() => {});
           if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
