@@ -13,6 +13,8 @@
   const TASK_SCHED_KEY = 'theo_cmd_scheduled_tasks_v1';
   const TASK_ALERTED_KEY = 'theo_cmd_alerted_tasks_v1';
   const NOTIF_PREFS_KEY = 'theo_cmd_notif_prefs_v1';
+  const NOTIF_INBOX_KEY = 'theo_cmd_notif_inbox_v1';
+  const NOTIF_CHECKED_KEY = 'theo_cmd_notif_checked_v1';
 
   const DEFAULT_NOTIF_PREFS = {
     enabled: true,
@@ -258,7 +260,8 @@
     delegatedStatusFilter: 'all',
     expandedRowId: '',
     openClusterSheetId: '',
-    openSheetKind: '', // '' | 'cluster' | 'roster'
+    openSheetKind: '', // '' | 'cluster' | 'roster' | 'notifications'
+    sheetOpenedWithUnreadIds: [],
     rosterSheetOpts: {
       pickForDraft: false,
       existingTaskId: '',
@@ -275,6 +278,8 @@
     teamRoster: [...DEFAULT_TEAM_ROSTER],
     prayerConfig: { ...DEFAULT_PRAYER_CONFIG },
     notifPrefs: { ...DEFAULT_NOTIF_PREFS },
+    notifications: [],
+    checkedNotifKeys: [],
     cloudPushDevices: [],
     delegatedCloudMap: {},
     updatedAt: 0,
@@ -439,6 +444,25 @@
       const savedDevs = JSON.parse(localStorage.getItem(CLOUD_PUSH_DEVS_KEY) || 'null');
       if (Array.isArray(savedDevs)) {
         state.cloudPushDevices = savedDevs;
+      }
+    } catch {}
+    try {
+      const savedChecked = JSON.parse(localStorage.getItem(NOTIF_CHECKED_KEY) || 'null');
+      if (Array.isArray(savedChecked)) {
+        state.checkedNotifKeys = savedChecked.filter(Boolean).slice(-250);
+      }
+    } catch {}
+    try {
+      const savedInbox = JSON.parse(localStorage.getItem(NOTIF_INBOX_KEY) || 'null');
+      if (Array.isArray(savedInbox)) {
+        const checkedSet = new Set(state.checkedNotifKeys);
+        state.notifications = savedInbox
+          .filter((x) => x && typeof x === 'object' && (x.id || x.tag))
+          .map((x) => ({
+            ...x,
+            checked: Boolean(x.checked || checkedSet.has(x.id) || (x.tag && checkedSet.has(x.tag)))
+          }))
+          .slice(0, 60);
       }
     } catch {}
     try {
@@ -1262,24 +1286,424 @@
     return Array.from(byEndpoint.values());
   }
 
-  function updatePushHudState() {
+  const CMD_UNREAD_NOTIFS_URL = './__theo_cmd_unread_notifs.json';
+
+  function formatRelativeNotifTime(ts) {
+    const ms = Number(ts || 0);
+    if (!ms) return '';
+    const diffSec = Math.max(0, Math.floor((Date.now() - ms) / 1000));
+    if (diffSec < 45) return 'Just now';
+    if (diffSec < 3600) return `${Math.floor(diffSec / 60)}m ago`;
+    if (diffSec < 86400) return `${Math.floor(diffSec / 3600)}h ago`;
+    return `${Math.floor(diffSec / 86400)}d ago`;
+  }
+
+  function saveNotificationInboxState() {
+    try {
+      localStorage.setItem(
+        NOTIF_INBOX_KEY,
+        JSON.stringify((state.notifications || []).slice(0, 60))
+      );
+      localStorage.setItem(
+        NOTIF_CHECKED_KEY,
+        JSON.stringify((state.checkedNotifKeys || []).slice(-250))
+      );
+    } catch {}
+  }
+
+  function getUncheckedNotifications() {
+    return (state.notifications || []).filter((n) => n && !n.checked);
+  }
+
+  function syncUnreadCacheToSw(closeOsNotifications = false, checkedTags = []) {
+    const items = (state.notifications || []).slice(0, 60);
+    const unreadCount = items.filter((n) => n && !n.checked).length;
+    try {
+      if ('caches' in window) {
+        caches
+          .open('theo-cmd-nav-handoff-v1')
+          .then((cache) =>
+            cache.put(
+              CMD_UNREAD_NOTIFS_URL,
+              new Response(JSON.stringify({ updatedAt: Date.now(), items }), {
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Cache-Control': 'no-store'
+                }
+              })
+            )
+          )
+          .catch(() => {});
+      }
+    } catch {}
+    try {
+      if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+        navigator.serviceWorker.controller.postMessage({
+          type: 'sync-unread-notifs',
+          items,
+          unreadCount,
+          closeOsNotifications: Boolean(closeOsNotifications),
+          checkedTags: Array.isArray(checkedTags) ? checkedTags : []
+        });
+      }
+    } catch {}
+  }
+
+  function updateAppBadgeCount(closeOsNotifications = false, checkedTags = []) {
+    const unchecked = getUncheckedNotifications();
+    const count = unchecked.length;
+
+    const badgeEl = document.getElementById('push-count-badge');
+    const pushBtn = document.getElementById('btn-push-toggle');
+    const pDot = document.getElementById('push-dot');
     const thisArmed = isThisDevicePushEnabled();
     const totalArmed = getAllActivePushSubscriptions().length;
-    const pDot = document.getElementById('push-dot');
+
+    if (badgeEl) {
+      if (count > 0) {
+        badgeEl.hidden = false;
+        badgeEl.textContent = count > 99 ? '99+' : String(count);
+      } else {
+        badgeEl.hidden = true;
+        badgeEl.textContent = '0';
+      }
+    }
+    if (pushBtn) {
+      pushBtn.classList.toggle('has-unread-notifs', count > 0);
+      pushBtn.title =
+        count > 0
+          ? `🔴 ${count} Unchecked Notification${count === 1 ? '' : 's'} — Tap to view & clear`
+          : thisArmed
+            ? `🔔 Planner Push Active on this device (${totalArmed} Planner device${totalArmed === 1 ? '' : 's'} armed) — Tap for Notification Center`
+            : '🔕 Tap to enable Planner Lock-Screen Push Notifications on this device';
+    }
     if (pDot) {
-      pDot.hidden = totalArmed === 0;
+      pDot.hidden = count > 0 || totalArmed === 0;
       pDot.style.background = thisArmed ? 'var(--emerald)' : 'var(--brass)';
     }
+
+    const baseTitle = 'Planner — Planning, Tasks, Delegation, Score & Prayer Times';
+    document.title = count > 0 ? `(${count}) ${baseTitle}` : baseTitle;
+
+    // Native iOS Home Screen / Android / Desktop App Icon Red Badge (W3C Badging API)
+    try {
+      if (typeof navigator !== 'undefined') {
+        if (count > 0 && typeof navigator.setAppBadge === 'function') {
+          navigator.setAppBadge(count).catch(() => {});
+        } else if (count === 0 && typeof navigator.clearAppBadge === 'function') {
+          navigator.clearAppBadge().catch(() => {});
+        } else if (count === 0 && typeof navigator.setAppBadge === 'function') {
+          navigator.setAppBadge(0).catch(() => {});
+        }
+      }
+    } catch {}
+
+    syncUnreadCacheToSw(closeOsNotifications, checkedTags);
+  }
+
+  function recordNotificationItem(rawPayload, opts = {}) {
+    if (!rawPayload || typeof rawPayload !== 'object') return null;
+    const tag = String(rawPayload.tag || rawPayload.id || `theo-cmd-notif-${Date.now()}`).trim();
+    const id = String(rawPayload.id || tag).trim();
+    const isPrayer = Boolean(
+      rawPayload.openPrayer ||
+        rawPayload.tab === 'prayers' ||
+        rawPayload.tab === 'prayer' ||
+        tag.includes('prayer')
+    );
+    const taskId = String(rawPayload.taskId || rawPayload.reminderId || '').trim();
+    const tab = isPrayer
+      ? 'prayers'
+      : normalizeCommandTab(rawPayload.tab || (taskId ? 'tasks' : 'planning'));
+    const url =
+      rawPayload.url && rawPayload.url !== './'
+        ? String(rawPayload.url)
+        : isPrayer
+          ? './?tab=prayers'
+          : taskId
+            ? `./?tab=${encodeURIComponent(tab)}&taskId=${encodeURIComponent(taskId)}`
+            : `./?tab=${encodeURIComponent(tab)}`;
+
+    const checked = Boolean(opts.checked);
+    const item = {
+      id,
+      tag,
+      alertKey: String(rawPayload.alertKey || id),
+      title: String(rawPayload.title || 'Planner'),
+      body: String(rawPayload.body || 'Tap to open in Planner.'),
+      tab,
+      taskId,
+      openPrayer: isPrayer,
+      url,
+      ts: Number(rawPayload.ts || Date.now()),
+      checked
+    };
+
+    if (!checked && Array.isArray(state.checkedNotifKeys)) {
+      // If a brand-new notification fires with this id/tag, un-suppress it
+      state.checkedNotifKeys = state.checkedNotifKeys.filter(
+        (k) => k !== item.id && k !== item.tag && k !== item.alertKey
+      );
+    }
+
+    const filtered = (state.notifications || []).filter(
+      (x) => x && x.id !== item.id && x.tag !== item.tag
+    );
+    state.notifications = [item, ...filtered].slice(0, 60);
+    saveNotificationInboxState();
+    updateAppBadgeCount(false);
+    return item;
+  }
+
+  function markNotificationsChecked(predicate, closeOs = true) {
+    if (typeof predicate !== 'function') return 0;
+    const checkedSet = new Set(state.checkedNotifKeys || []);
+    const checkedTags = [];
+    let markedCount = 0;
+
+    for (const n of state.notifications || []) {
+      if (!n) continue;
+      if (predicate(n)) {
+        if (!n.checked) {
+          n.checked = true;
+          markedCount++;
+        }
+        if (n.id) checkedSet.add(n.id);
+        if (n.tag) {
+          checkedSet.add(n.tag);
+          checkedTags.push(n.tag);
+        }
+        if (n.alertKey) checkedSet.add(n.alertKey);
+      }
+    }
+
+    state.checkedNotifKeys = Array.from(checkedSet).slice(-250);
+    saveNotificationInboxState();
+    const remainingUnread = getUncheckedNotifications().length;
+    updateAppBadgeCount(closeOs || remainingUnread === 0, checkedTags);
+    return markedCount;
+  }
+
+  function markAllNotificationsChecked() {
+    const checkedSet = new Set(state.checkedNotifKeys || []);
+    const checkedTags = [];
+    for (const n of state.notifications || []) {
+      if (!n) continue;
+      n.checked = true;
+      if (n.id) checkedSet.add(n.id);
+      if (n.tag) {
+        checkedSet.add(n.tag);
+        checkedTags.push(n.tag);
+      }
+      if (n.alertKey) checkedSet.add(n.alertKey);
+    }
+    state.checkedNotifKeys = Array.from(checkedSet).slice(-250);
+    state.sheetOpenedWithUnreadIds = [];
+    saveNotificationInboxState();
+    updateAppBadgeCount(true, checkedTags);
+  }
+
+  function clearNotificationHistory() {
+    const checkedSet = new Set(state.checkedNotifKeys || []);
+    for (const n of state.notifications || []) {
+      if (!n) continue;
+      if (n.id) checkedSet.add(n.id);
+      if (n.tag) checkedSet.add(n.tag);
+      if (n.alertKey) checkedSet.add(n.alertKey);
+    }
+    state.checkedNotifKeys = Array.from(checkedSet).slice(-250);
+    state.notifications = [];
+    state.sheetOpenedWithUnreadIds = [];
+    saveNotificationInboxState();
+    updateAppBadgeCount(true);
+  }
+
+  function seedUncheckedDueNotifications() {
+    const nowMs = Date.now();
+    const checkedSet = new Set(state.checkedNotifKeys || []);
+    const existingIds = new Set(
+      (state.notifications || [])
+        .flatMap((n) => (n ? [n.id, n.tag, n.alertKey] : []))
+        .filter(Boolean)
+    );
+    let added = false;
+
+    for (const item of state.reminders || []) {
+      if (!item || !item.id || item.completed || item.deleted) continue;
+
+      // 1. Matured / Due Tasks & Wait Timers within the last 48h
+      const targetAt = Number(item.matureAt || item.dueAt || 0);
+      if (targetAt > 0 && nowMs >= targetAt && nowMs - targetAt < 48 * 3600 * 1000) {
+        const alertKey = `due_${item.id}_${targetAt}`;
+        const tag = `cmd-timer-${item.id}`;
+        if (!checkedSet.has(alertKey) && !checkedSet.has(tag) && !existingIds.has(alertKey) && !existingIds.has(tag)) {
+          const payload = buildTaskNotificationPayload(item);
+          state.notifications.unshift({
+            id: alertKey,
+            tag: payload.tag || tag,
+            alertKey,
+            title: payload.title,
+            body: payload.body,
+            tab: payload.tab || 'tasks',
+            taskId: item.id,
+            openPrayer: false,
+            url: payload.url || `./?tab=tasks&taskId=${encodeURIComponent(item.id)}`,
+            ts: targetAt,
+            checked: false
+          });
+          existingIds.add(alertKey);
+          existingIds.add(tag);
+          added = true;
+        }
+      }
+
+      // 2. Staff Delegation Updates (Seen / Working / Done) within the last 48h
+      const st = item.delegationStatus || '';
+      const staffTs = item.staffUpdatedAt ? new Date(item.staffUpdatedAt).getTime() : 0;
+      if (
+        (st === 'seen' || st === 'working' || st === 'done') &&
+        staffTs > 0 &&
+        nowMs - staffTs < 48 * 3600 * 1000
+      ) {
+        const alertKey = `del_${item.id}_${st}_${staffTs}`;
+        const tag = `cmd-del-live-${item.id}-${st}`;
+        if (!checkedSet.has(alertKey) && !checkedSet.has(tag) && !existingIds.has(alertKey) && !existingIds.has(tag)) {
+          const who = item.assigneeName || 'Team';
+          const stTitles = {
+            seen: `👀 ${who} saw task`,
+            working: `⚙️ ${who} is working on task`,
+            done: `✅ ${who} completed task`
+          };
+          state.notifications.unshift({
+            id: alertKey,
+            tag,
+            alertKey,
+            title: stTitles[st] || `👤 ${who} updated task`,
+            body: `${item.title}${item.staffNote ? ` · 💬 "${item.staffNote}"` : ''}`,
+            tab: 'delegated',
+            taskId: item.id,
+            openPrayer: false,
+            url: `./?tab=delegated&taskId=${encodeURIComponent(item.id)}`,
+            ts: staffTs,
+            checked: false
+          });
+          existingIds.add(alertKey);
+          existingIds.add(tag);
+          added = true;
+        }
+      }
+    }
+
+    if (added) {
+      state.notifications = state.notifications
+        .sort((a, b) => Number(b.ts || 0) - Number(a.ts || 0))
+        .slice(0, 60);
+      saveNotificationInboxState();
+      updateAppBadgeCount(false);
+    }
+  }
+
+  async function syncNotificationsWithSwCache() {
+    const checkedSet = new Set(state.checkedNotifKeys || []);
+    const byKey = new Map();
+    for (const n of state.notifications || []) {
+      if (n && (n.id || n.tag)) {
+        byKey.set(n.tag || n.id, n);
+      }
+    }
+    let changed = false;
+
+    try {
+      if ('caches' in window) {
+        const cache = await caches.open('theo-cmd-nav-handoff-v1');
+        const res = await cache.match(CMD_UNREAD_NOTIFS_URL);
+        if (res) {
+          const parsed = await res.json().catch(() => null);
+          const list = Array.isArray(parsed)
+            ? parsed
+            : Array.isArray(parsed?.items)
+              ? parsed.items
+              : [];
+          for (const raw of list) {
+            if (!raw || typeof raw !== 'object') continue;
+            const k = String(raw.tag || raw.id || '').trim();
+            if (!k) continue;
+            const existing = byKey.get(k);
+            const isChecked = Boolean(
+              raw.checked || checkedSet.has(raw.id) || checkedSet.has(raw.tag)
+            );
+            if (!existing) {
+              byKey.set(k, {
+                id: String(raw.id || k),
+                tag: String(raw.tag || k),
+                alertKey: String(raw.alertKey || raw.id || k),
+                title: String(raw.title || 'Planner'),
+                body: String(raw.body || 'Tap to open in Planner.'),
+                tab: normalizeCommandTab(raw.tab || (raw.openPrayer ? 'prayers' : 'planning')),
+                taskId: String(raw.taskId || ''),
+                openPrayer: Boolean(raw.openPrayer),
+                url: String(raw.url || './'),
+                ts: Number(raw.ts || Date.now()),
+                checked: isChecked
+              });
+              changed = true;
+            } else if (Number(raw.ts || 0) > Number(existing.ts || 0) && !raw.checked) {
+              existing.ts = Number(raw.ts);
+              existing.title = String(raw.title || existing.title);
+              existing.body = String(raw.body || existing.body);
+              existing.checked = false;
+              changed = true;
+            }
+          }
+        }
+      }
+    } catch {}
+
+    // Also inspect any active OS notifications currently shown by the Service Worker
+    try {
+      if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+        const reg = await navigator.serviceWorker.ready;
+        if (reg && typeof reg.getNotifications === 'function') {
+          const activeOs = await reg.getNotifications();
+          for (const osNotif of activeOs) {
+            const k = String(osNotif.tag || '').trim();
+            if (!k || byKey.has(k) || checkedSet.has(k)) continue;
+            const d = osNotif.data || {};
+            byKey.set(k, {
+              id: k,
+              tag: k,
+              alertKey: k,
+              title: String(osNotif.title || 'Planner'),
+              body: String(osNotif.body || 'Tap to open in Planner.'),
+              tab: normalizeCommandTab(d.tab || (d.openPrayer ? 'prayers' : 'planning')),
+              taskId: String(d.taskId || ''),
+              openPrayer: Boolean(d.openPrayer),
+              url: String(d.url || './'),
+              ts: Number(d.ts || Date.now()),
+              checked: false
+            });
+            changed = true;
+          }
+        }
+      }
+    } catch {}
+
+    if (changed) {
+      state.notifications = Array.from(byKey.values())
+        .sort((a, b) => Number(b.ts || 0) - Number(a.ts || 0))
+        .slice(0, 60);
+      saveNotificationInboxState();
+    }
+    updateAppBadgeCount(false);
+  }
+
+  function updatePushHudState() {
+    const thisArmed = isThisDevicePushEnabled();
     const banner = document.getElementById('planner-push-banner');
     if (banner) {
       banner.hidden = thisArmed;
     }
-    const pushBtn = document.getElementById('btn-push-toggle');
-    if (pushBtn) {
-      pushBtn.title = thisArmed
-        ? `🔔 Planner Push Active on this device (${totalArmed} Planner device${totalArmed === 1 ? '' : 's'} armed) — Tap for Notification Center`
-        : '🔕 Tap to enable Planner Lock-Screen Push Notifications on this device';
-    }
+    updateAppBadgeCount(false);
   }
 
   function buildTaskNotificationPayload(item) {
@@ -1919,11 +2343,13 @@
 
   function showLocalSwNotification(payload) {
     try {
+      recordNotificationItem(payload, { checked: false });
       if (!('Notification' in window) || Notification.permission !== 'granted') return;
       if (navigator.serviceWorker && navigator.serviceWorker.controller) {
         navigator.serviceWorker.controller.postMessage({
           type: 'show-notification',
-          payload
+          payload,
+          skipUnread: true
         });
       } else if (navigator.serviceWorker) {
         navigator.serviceWorker.ready
@@ -1931,8 +2357,8 @@
             const isPrayer = Boolean(payload.openPrayer || payload.tab === 'prayers');
             reg.showNotification(payload.title || 'Planner', {
               body: payload.body || '',
-              icon: './icon-192.png?v=13',
-              badge: './icon-192.png?v=13',
+              icon: './icon-192.png?v=16',
+              badge: './icon-192.png?v=16',
               tag: payload.tag || 'theo-cmd-notif',
               renotify: true,
               requireInteraction: Boolean(payload.requireInteraction),
@@ -3947,6 +4373,7 @@
      ============================================================================ */
   function openClusterSheet(clusterId) {
     state.openClusterSheetId = clusterId;
+    state.openSheetKind = 'cluster';
     const cluster = CLUSTERS.find((c) => c.id === clusterId) || CLUSTERS[0];
     const backdrop = document.getElementById('sheet-backdrop');
     const titleWrap = document.getElementById('sheet-title-wrap');
@@ -4045,6 +4472,7 @@
 
     state.rosterSheetOpts = opts;
     state.openClusterSheetId = '';
+    state.openSheetKind = 'roster';
 
     const existingTask = opts.existingTaskId
       ? state.reminders.find((r) => r.id === opts.existingTaskId)
@@ -4294,12 +4722,35 @@
     }
   }
 
-  function openNotificationCenterSheet() {
+  function closeActiveSheet() {
+    const backdrop = document.getElementById('sheet-backdrop');
+    if (
+      state.openSheetKind === 'notifications' &&
+      Array.isArray(state.sheetOpenedWithUnreadIds) &&
+      state.sheetOpenedWithUnreadIds.length > 0
+    ) {
+      const viewedIds = new Set(state.sheetOpenedWithUnreadIds);
+      state.sheetOpenedWithUnreadIds = [];
+      markNotificationsChecked((n) => n && viewedIds.has(n.id), true);
+    }
     state.openClusterSheetId = '';
+    state.openSheetKind = '';
+    if (backdrop) backdrop.hidden = true;
+  }
+
+  function openNotificationCenterSheet(preserveViewedSnapshot = false) {
+    state.openClusterSheetId = '';
+    state.openSheetKind = 'notifications';
     const backdrop = document.getElementById('sheet-backdrop');
     const titleWrap = document.getElementById('sheet-title-wrap');
     const body = document.getElementById('sheet-body');
     if (!backdrop || !titleWrap || !body) return;
+
+    seedUncheckedDueNotifications();
+    const unchecked = getUncheckedNotifications();
+    if (!preserveViewedSnapshot) {
+      state.sheetOpenedWithUnreadIds = unchecked.map((n) => n.id);
+    }
 
     const prefs = normalizeNotifPrefs(state.notifPrefs);
     const pCfg = normalizePrayerConfig(state.prayerConfig);
@@ -4311,9 +4762,78 @@
     const delegatedCount = state.reminders.filter(isDelegatedItem).length;
 
     titleWrap.innerHTML = `
-      <div>
-        <strong style="font-size:15px">🔔 Planner Notification Control Center</strong>
-        <div style="font-size:11px;color:var(--text-muted)">All Prayer Times, Tasks, Smart Wait Timers, Delegations &amp; 100% Score alerts notify via Planner</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%">
+        <div>
+          <strong style="font-size:15px">🔔 Planner Notifications &amp; Control Center</strong>
+          <div style="font-size:11px;color:var(--text-muted)">Unchecked alerts show a red badge on the top-right bell &amp; Home Screen icon</div>
+        </div>
+      </div>
+    `;
+
+    const allNotifs = (state.notifications || []).slice(0, 18);
+    const inboxHtml = `
+      <div class="notif-inbox-box ${unchecked.length > 0 ? 'has-unread' : ''}" id="notif-inbox-box">
+        <div class="notif-inbox-head">
+          <div style="display:flex;align-items:center;gap:7px">
+            ${
+              unchecked.length > 0
+                ? `<span class="notif-inbox-badge-red tabular">${unchecked.length}</span>
+                   <strong style="font-size:13px;color:var(--text-primary)">Unchecked Notification${unchecked.length === 1 ? '' : 's'}</strong>`
+                : `<span style="font-size:12.5px;font-weight:800;color:var(--emerald)">✓ All Notifications Checked (0 Unread)</span>`
+            }
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+            ${
+              unchecked.length > 0
+                ? `<button type="button" class="t-act-btn primary" id="btn-notif-mark-all-read">✓ Mark All Checked (${unchecked.length})</button>`
+                : ''
+            }
+            ${
+              allNotifs.length > 0
+                ? `<button type="button" class="mini-chip" id="btn-notif-clear-history">Clear History</button>`
+                : ''
+            }
+          </div>
+        </div>
+
+        ${
+          allNotifs.length > 0
+            ? `
+          <div class="notif-inbox-list">
+            ${allNotifs
+              .map(
+                (n) => `
+              <div class="notif-inbox-item ${!n.checked ? 'is-unchecked' : 'is-checked'}" data-notif-open="${esc(n.id)}">
+                ${
+                  !n.checked
+                    ? `<span class="notif-unread-dot" title="Unchecked notification"></span>`
+                    : `<span class="notif-checked-mark" title="Checked">✓</span>`
+                }
+                <div style="min-width:0;flex:1">
+                  <div style="display:flex;align-items:center;justify-content:space-between;gap:6px">
+                    <strong style="font-size:12.5px;color:var(--text-primary)">${esc(n.title)}</strong>
+                    <span class="tabular" style="font-size:10.5px;color:var(--text-muted);flex-shrink:0">${esc(
+                      formatRelativeNotifTime(n.ts)
+                    )}</span>
+                  </div>
+                  <div style="font-size:11.5px;color:var(--text-secondary);margin-top:2px">${esc(n.body)}</div>
+                </div>
+                <div style="display:flex;align-items:center;gap:5px;flex-shrink:0">
+                  ${
+                    !n.checked
+                      ? `<button type="button" class="mini-chip active" data-notif-check-one="${esc(n.id)}" title="Mark as checked">✓</button>`
+                      : ''
+                  }
+                  <button type="button" class="mini-chip" data-notif-open="${esc(n.id)}">Open →</button>
+                </div>
+              </div>
+            `
+              )
+              .join('')}
+          </div>
+        `
+            : `<div style="font-size:11.5px;color:var(--text-muted);padding:4px 0">No unread notifications right now. When a Prayer time, Task, Wait Timer, or Delegation update fires, a red number badge appears on the top-right bell and on your Home Screen Planner icon until you check it.</div>`
+        }
       </div>
     `;
 
@@ -4356,6 +4876,7 @@
     ];
 
     body.innerHTML = `
+      ${inboxHtml}
       <div class="prayer-loc-box" style="border-color:${thisArmed ? 'var(--emerald)' : 'var(--brass)'}">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
           <div>
@@ -4699,12 +5220,14 @@
     // Top HUD Score button -> switch to 100% Score tab
     document.getElementById('hud-score-btn')?.addEventListener('click', () => {
       state.activeTab = 'score';
+      markNotificationsChecked((n) => n && n.tab === 'score');
       renderAll();
     });
 
     // Top HUD Shia Prayer Pill -> switch to Prayers tab
     document.getElementById('btn-prayer-hud')?.addEventListener('click', () => {
       state.activeTab = 'prayers';
+      markNotificationsChecked((n) => n && (n.openPrayer || n.tab === 'prayers'));
       renderAll();
     });
 
@@ -4790,6 +5313,11 @@
       const btn = e.target.closest('[data-tab]');
       if (!btn) return;
       state.activeTab = normalizeCommandTab(btn.getAttribute('data-tab'));
+      if (state.activeTab === 'prayers') {
+        markNotificationsChecked((n) => n && (n.openPrayer || n.tab === 'prayers'));
+      } else if (state.activeTab === 'score') {
+        markNotificationsChecked((n) => n && n.tab === 'score');
+      }
       renderAll();
     });
 
@@ -4945,6 +5473,9 @@
         e.stopPropagation();
         const act = actBtn.getAttribute('data-act');
         const id = actBtn.getAttribute('data-id');
+        if (id) {
+          markNotificationsChecked((n) => n && n.taskId === id);
+        }
         const item = state.reminders.find((r) => r.id === id);
         if (!item) return;
 
@@ -5053,6 +5584,9 @@
       const rowToggle = e.target.closest('[data-row-toggle]');
       if (rowToggle) {
         const rId = rowToggle.getAttribute('data-row-toggle');
+        if (rId) {
+          markNotificationsChecked((n) => n && n.taskId === rId);
+        }
         state.expandedRowId = state.expandedRowId === rId ? '' : rId;
         renderAll();
         return;
@@ -5127,22 +5661,55 @@
     // Sheet interactions
     const backdrop = document.getElementById('sheet-backdrop');
     document.getElementById('sheet-close-btn')?.addEventListener('click', () => {
-      state.openClusterSheetId = '';
-      if (backdrop) backdrop.hidden = true;
+      closeActiveSheet();
     });
     backdrop?.addEventListener('click', (e) => {
       if (e.target === backdrop) {
-        state.openClusterSheetId = '';
-        backdrop.hidden = true;
+        closeActiveSheet();
       }
     });
 
     document.getElementById('sheet-body')?.addEventListener('click', async (e) => {
       if (await handlePrayerControlClick(e)) return;
 
+      if (e.target.closest('#btn-notif-mark-all-read')) {
+        markAllNotificationsChecked();
+        openNotificationCenterSheet(true);
+        showToast('✓ All notifications marked as checked');
+        return;
+      }
+      if (e.target.closest('#btn-notif-clear-history')) {
+        clearNotificationHistory();
+        openNotificationCenterSheet(true);
+        showToast('Cleared notification history');
+        return;
+      }
+      const checkOneBtn = e.target.closest('[data-notif-check-one]');
+      if (checkOneBtn) {
+        e.stopPropagation();
+        const nId = checkOneBtn.getAttribute('data-notif-check-one');
+        if (nId) {
+          markNotificationsChecked((n) => n && (n.id === nId || n.tag === nId));
+          openNotificationCenterSheet(true);
+        }
+        return;
+      }
+      const openNotifEl = e.target.closest('[data-notif-open]');
+      if (openNotifEl) {
+        const nId = openNotifEl.getAttribute('data-notif-open');
+        const found = (state.notifications || []).find((n) => n && (n.id === nId || n.tag === nId));
+        if (found) {
+          markNotificationsChecked((n) => n && (n.id === found.id || n.tag === found.tag));
+          state.sheetOpenedWithUnreadIds = [];
+          closeActiveSheet();
+          applyCommandNotificationNav(found);
+        }
+        return;
+      }
+
       if (e.target.closest('#btn-notif-enable-device')) {
         await subscribeCurrentBrowserPush();
-        openNotificationCenterSheet();
+        openNotificationCenterSheet(true);
         return;
       }
       if (e.target.closest('#btn-notif-rearm-all')) {
@@ -5151,7 +5718,7 @@
         const pCnt = await scheduleUpcomingPrayerCloudPushes(null, true);
         const tCnt = await scheduleAllActiveTaskCloudPushes(null, true);
         showToast(`✅ Armed ${pCnt} prayer slots & ${tCnt} task/timer alarms in Cloud Relay!`);
-        openNotificationCenterSheet();
+        openNotificationCenterSheet(true);
         return;
       }
       const nToggle = e.target.closest('[data-notif-toggle]');
@@ -5170,13 +5737,16 @@
           saveLocalState();
           syncAll().catch(() => {});
         }
-        openNotificationCenterSheet();
+        openNotificationCenterSheet(true);
         return;
       }
       const nTest = e.target.closest('[data-notif-test]');
       if (nTest) {
         const ch = nTest.getAttribute('data-notif-test') || 'prayers';
         await sendChannelTestPush(ch);
+        if (state.openSheetKind === 'notifications' && !backdrop?.hidden) {
+          openNotificationCenterSheet(true);
+        }
         return;
       }
 
@@ -5409,8 +5979,10 @@
   function applyCommandNotificationNav(raw) {
     const data = raw && typeof raw.data === 'object' ? raw.data : raw;
     if (!data || typeof data !== 'object') return false;
+    const checkedTag = String(raw?.checkedTag || data.checkedTag || data.tag || data.id || '').trim();
     if (data.openPrayer || data.tab === 'prayers' || data.tab === 'prayer') {
       state.activeTab = 'prayers';
+      markNotificationsChecked((n) => n && (n.openPrayer || n.tab === 'prayers' || (checkedTag && (n.tag === checkedTag || n.id === checkedTag))));
     } else if (data.tab) {
       state.activeTab = normalizeCommandTab(data.tab);
     } else if (data.taskId) {
@@ -5418,6 +5990,9 @@
     }
     if (data.taskId) {
       state.expandedRowId = String(data.taskId);
+      markNotificationsChecked((n) => n && (n.taskId === String(data.taskId) || (checkedTag && (n.tag === checkedTag || n.id === checkedTag))));
+    } else if (checkedTag) {
+      markNotificationsChecked((n) => n && (n.tag === checkedTag || n.id === checkedTag));
     }
     renderAll();
     if (data.taskId) {
@@ -5463,12 +6038,24 @@
         location.reload();
       });
       navigator.serviceWorker.addEventListener('message', (e) => {
-        if (e.data && e.data.type === 'theo-command-nav') {
+        if (!e.data) return;
+        if (e.data.type === 'theo-command-nav') {
           applyCommandNotificationNav(e.data);
+        } else if (e.data.type === 'theo-command-push') {
+          const item = e.data.item || e.data.payload;
+          if (item) {
+            recordNotificationItem(item, { checked: false });
+            if (
+              state.openSheetKind === 'notifications' &&
+              !document.getElementById('sheet-backdrop')?.hidden
+            ) {
+              openNotificationCenterSheet(true);
+            }
+          }
         }
       });
       navigator.serviceWorker
-        .register('./sw.js?v=15', { updateViaCache: 'none' })
+        .register('./sw.js?v=16', { updateViaCache: 'none' })
         .then(async (reg) => {
           reg.update().catch(() => {});
           if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
@@ -5481,6 +6068,7 @@
               }
             });
           });
+          await syncNotificationsWithSwCache();
           consumePendingCommandNav();
           try {
             const existingSub = await reg.pushManager.getSubscription();
@@ -5502,12 +6090,14 @@
     }
 
     loadLocalState();
+    seedUncheckedDueNotifications();
 
     const initTab = params.get('tab');
     const navTaskId = params.get('taskId') || params.get('rem');
     const prayerParam = params.get('prayer');
     if (prayerParam === '1') {
       state.activeTab = 'prayers';
+      markNotificationsChecked((n) => n && (n.openPrayer || n.tab === 'prayers'));
     } else if (initTab) {
       state.activeTab = normalizeCommandTab(initTab);
     } else if (navTaskId) {
@@ -5515,6 +6105,7 @@
     }
     if (navTaskId) {
       state.expandedRowId = navTaskId;
+      markNotificationsChecked((n) => n && n.taskId === navTaskId);
     }
     if (initTab || navTaskId || prayerParam) {
       try {
@@ -5526,28 +6117,34 @@
       if (state.activeTab === 'planning' && !isFormControlFocused()) renderPlanningView();
     });
     window.addEventListener('storage', (e) => {
-      if (e.key === STORAGE_KEY || e.key === LEGACY_LEDGER_KEY) {
+      if (e.key === STORAGE_KEY || e.key === LEGACY_LEDGER_KEY || e.key === NOTIF_INBOX_KEY) {
         loadLocalState();
         renderAll();
       }
     });
     window.addEventListener('focus', () => {
       loadLocalState();
-      consumePendingCommandNav().finally(() => {
-        renderAll();
-        checkLivePrayerNotificationsTick();
-        checkLiveTaskNotificationsTick();
-        syncAll().catch(() => {});
+      syncNotificationsWithSwCache().finally(() => {
+        consumePendingCommandNav().finally(() => {
+          seedUncheckedDueNotifications();
+          renderAll();
+          checkLivePrayerNotificationsTick();
+          checkLiveTaskNotificationsTick();
+          syncAll().catch(() => {});
+        });
       });
     });
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible') {
         loadLocalState();
-        consumePendingCommandNav().finally(() => {
-          renderAll();
-          checkLivePrayerNotificationsTick();
-          checkLiveTaskNotificationsTick();
-          syncAll().catch(() => {});
+        syncNotificationsWithSwCache().finally(() => {
+          consumePendingCommandNav().finally(() => {
+            seedUncheckedDueNotifications();
+            renderAll();
+            checkLivePrayerNotificationsTick();
+            checkLiveTaskNotificationsTick();
+            syncAll().catch(() => {});
+          });
         });
       }
     });
@@ -5555,6 +6152,7 @@
     bindOwnerEvents();
     renderAll();
 
+    await syncNotificationsWithSwCache();
     await consumePendingCommandNav();
 
     // Silent GPS refresh if geolocation permission is already granted
@@ -5572,9 +6170,11 @@
     checkLivePrayerNotificationsTick();
     checkLiveTaskNotificationsTick();
     await syncAll();
+    seedUncheckedDueNotifications();
     setInterval(() => {
       checkLivePrayerNotificationsTick();
       checkLiveTaskNotificationsTick();
+      seedUncheckedDueNotifications();
       if (!isFormControlFocused()) renderAll();
     }, 15000);
     setInterval(() => {

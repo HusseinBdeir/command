@@ -336,6 +336,18 @@ button {
 }
 
 @media (max-width: 640px) {
+  .hud-ribbon {
+    padding: max(6px, env(safe-area-inset-top, 6px)) 12px 6px 10px;
+    gap: 5px;
+  }
+  .hud-left,
+  .hud-right {
+    gap: 4px;
+  }
+  .hud-score-pill {
+    padding: 4px 7px;
+    gap: 4px;
+  }
   .hud-score-delta {
     display: none;
   }
@@ -350,6 +362,16 @@ button {
     padding: 4px 6px;
   }
   #sync-label {
+    display: none;
+  }
+  .hud-theo-link {
+    padding: 4px 6px;
+    font-size: 10.5px;
+  }
+}
+
+@media (max-width: 440px) {
+  .prayer-hud-name {
     display: none;
   }
 }
@@ -406,6 +428,37 @@ button {
   height: 6px;
   border-radius: 50%;
   background: var(--brass);
+}
+
+.hud-notif-btn {
+  overflow: visible;
+}
+
+.hud-notif-btn.has-unread-notifs {
+  border-color: rgba(255, 59, 48, 0.55);
+  color: var(--text-primary);
+}
+
+.push-count-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #FF3B30;
+  color: #FFFFFF;
+  font-size: 10.5px;
+  font-weight: 800;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--bg-ink);
+  box-shadow: 0 2px 6px rgba(255, 59, 48, 0.44);
+  pointer-events: none;
+  z-index: 3;
 }
 
 .hud-theo-link {
@@ -1871,6 +1924,93 @@ button {
   justify-content: space-between;
   gap: 10px;
   flex-wrap: wrap;
+}
+
+.notif-inbox-box {
+  padding: 11px 12px;
+  border-radius: 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-strong);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.notif-inbox-box.has-unread {
+  border-color: rgba(255, 59, 48, 0.5);
+  background: linear-gradient(155deg, rgba(255, 59, 48, 0.06), var(--bg-card));
+}
+
+.notif-inbox-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.notif-inbox-badge-red {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: #FF3B30;
+  color: #FFFFFF;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.notif-inbox-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 240px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.notif-inbox-item {
+  padding: 9px 10px;
+  border-radius: 10px;
+  background: var(--bg-ink);
+  border: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 9px;
+  cursor: pointer;
+  transition: border-color 0.14s ease, background 0.14s ease;
+}
+
+.notif-inbox-item.is-unchecked {
+  border-color: rgba(255, 59, 48, 0.42);
+  background: var(--bg-card);
+}
+
+.notif-inbox-item.is-checked {
+  opacity: 0.72;
+}
+
+.notif-unread-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #FF3B30;
+  box-shadow: 0 0 6px rgba(255, 59, 48, 0.55);
+  flex-shrink: 0;
+  margin-top: 5px;
+}
+
+.notif-checked-mark {
+  font-size: 11px;
+  color: var(--emerald);
+  font-weight: 800;
+  flex-shrink: 0;
+  margin-top: 2px;
 }
 
 /* ============================================================================

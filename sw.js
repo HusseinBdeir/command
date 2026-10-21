@@ -1,18 +1,19 @@
-/* Planner — Standalone Executive & Personal PWA for Planning, Tasks, Delegation, 100% Score & Shia Prayer Times (Service Worker v15) */
-const CACHE_NAME = 'bhf-planner-v15';
+/* Planner — Standalone Executive & Personal PWA for Planning, Tasks, Delegation, 100% Score & Shia Prayer Times (Service Worker v16) */
+const CACHE_NAME = 'bhf-planner-v16';
 const NAV_CACHE = 'theo-cmd-nav-handoff-v1';
 const PENDING_NAV_URL = './__theo_cmd_pending_nav.json';
+const UNREAD_NOTIFS_URL = './__theo_cmd_unread_notifs.json';
 const APP_SHELL = [
   './',
   './index.html',
-  './css/command.css?v=15',
-  './js/endpoints.js?v=15',
-  './js/app.js?v=15',
-  './manifest.json?v=15',
-  './icon.svg?v=15',
-  './icon-180.png?v=15',
-  './icon-192.png?v=15',
-  './icon-512.png?v=15'
+  './css/command.css?v=16',
+  './js/endpoints.js?v=16',
+  './js/app.js?v=16',
+  './manifest.json?v=16',
+  './icon.svg?v=16',
+  './icon-180.png?v=16',
+  './icon-192.png?v=16',
+  './icon-512.png?v=16'
 ];
 
 self.addEventListener('install', (event) => {
@@ -82,14 +83,86 @@ function buildNotifOptions(d) {
   const nav = buildCmdDeepLink(d);
   return {
     body: d.body || 'Tap to open Planner.',
-    icon: './icon-192.png?v=15',
-    badge: './icon-192.png?v=15',
+    icon: './icon-192.png?v=16',
+    badge: './icon-192.png?v=16',
     tag: d.tag || 'theo-cmd-notif',
     renotify: true,
     requireInteraction: Boolean(d.requireInteraction),
     vibrate: [180, 80, 180, 80, 260],
     data: nav
   };
+}
+
+async function readUnreadNotifsFromCache() {
+  try {
+    const cache = await caches.open(NAV_CACHE);
+    const res = await cache.match(UNREAD_NOTIFS_URL);
+    if (!res) return [];
+    const parsed = await res.json();
+    const list = Array.isArray(parsed) ? parsed : Array.isArray(parsed?.items) ? parsed.items : [];
+    return list.filter((x) => x && typeof x === 'object');
+  } catch {
+    return [];
+  }
+}
+
+async function writeUnreadNotifsToCache(items) {
+  const clean = Array.isArray(items) ? items.slice(0, 60) : [];
+  try {
+    const cache = await caches.open(NAV_CACHE);
+    await cache.put(
+      UNREAD_NOTIFS_URL,
+      new Response(JSON.stringify({ updatedAt: Date.now(), items: clean }), {
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-store'
+        }
+      })
+    );
+  } catch {}
+  return clean;
+}
+
+async function applySwAppBadge(count) {
+  const n = Math.max(0, Math.floor(Number(count || 0)));
+  try {
+    if (self.navigator) {
+      if (n > 0 && typeof self.navigator.setAppBadge === 'function') {
+        await self.navigator.setAppBadge(n);
+      } else if (n === 0 && typeof self.navigator.clearAppBadge === 'function') {
+        await self.navigator.clearAppBadge();
+      } else if (n === 0 && typeof self.navigator.setAppBadge === 'function') {
+        await self.navigator.setAppBadge(0);
+      }
+    }
+  } catch {}
+}
+
+async function upsertSwUnreadNotif(d, nav) {
+  const tag = String(d.tag || `theo-cmd-notif-${Date.now()}`);
+  const id = String(d.id || tag);
+  const item = {
+    id,
+    tag,
+    title: String(d.title || 'Planner'),
+    body: String(d.body || 'Tap to open Planner.'),
+    tab: nav.tab || 'planning',
+    taskId: nav.taskId || '',
+    openPrayer: Boolean(nav.openPrayer),
+    url: nav.url || './',
+    ts: Number(d.ts || Date.now()),
+    checked: false
+  };
+  const existing = await readUnreadNotifsFromCache();
+  const filtered = existing.filter((x) => x && x.id !== id && x.tag !== tag);
+  const next = [item, ...filtered].slice(0, 60);
+  await writeUnreadNotifsToCache(next);
+  let unreadCount = next.filter((x) => !x.checked).length;
+  if (Number(d.badgeCount || d.badge || 0) > unreadCount) {
+    unreadCount = Number(d.badgeCount || d.badge || 0);
+  }
+  await applySwAppBadge(Math.max(1, unreadCount));
+  return { item, items: next, unreadCount: Math.max(1, unreadCount) };
 }
 
 function isCommandClientUrl(rawUrl) {
@@ -116,14 +189,21 @@ self.addEventListener('push', (event) => {
   const title = d.title || 'Planner';
   const opts = buildNotifOptions(d);
   event.waitUntil(
-    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
+    (async () => {
+      const { item, unreadCount } = await upsertSwUnreadNotif(d, opts.data);
+      const list = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
       list.filter((c) => isCommandClientUrl(c.url)).forEach((c) => {
         try {
-          c.postMessage({ type: 'theo-command-push', payload: d });
+          c.postMessage({
+            type: 'theo-command-push',
+            payload: d,
+            item,
+            unreadCount
+          });
         } catch {}
       });
-      return self.registration.showNotification(title, opts);
-    })
+      await self.registration.showNotification(title, opts);
+    })()
   );
 });
 
@@ -134,19 +214,69 @@ self.addEventListener('message', (event) => {
     self.skipWaiting();
     return;
   }
+  if (m.type === 'sync-unread-notifs') {
+    event.waitUntil(
+      (async () => {
+        const items = Array.isArray(m.items) ? m.items : await readUnreadNotifsFromCache();
+        await writeUnreadNotifsToCache(items);
+        const unreadCount =
+          typeof m.unreadCount === 'number'
+            ? Math.max(0, Math.floor(m.unreadCount))
+            : items.filter((x) => x && !x.checked).length;
+        await applySwAppBadge(unreadCount);
+        if (m.closeOsNotifications && self.registration && typeof self.registration.getNotifications === 'function') {
+          try {
+            const activeNotifs = await self.registration.getNotifications();
+            const checkedTags = Array.isArray(m.checkedTags) ? new Set(m.checkedTags) : null;
+            for (const n of activeNotifs) {
+              if (!checkedTags || unreadCount === 0 || checkedTags.has(n.tag)) {
+                n.close();
+              }
+            }
+          } catch {}
+        }
+      })()
+    );
+    return;
+  }
   if (m.type === 'show-notification') {
     const d = m.payload || {};
+    const opts = buildNotifOptions(d);
     event.waitUntil(
-      self.registration.showNotification(d.title || 'Planner', buildNotifOptions(d))
+      (async () => {
+        if (!m.skipUnread) {
+          await upsertSwUnreadNotif(d, opts.data);
+        }
+        await self.registration.showNotification(d.title || 'Planner', opts);
+      })()
     );
   }
 });
 
 self.addEventListener('notificationclick', (event) => {
+  const clickedTag = String(event.notification?.tag || '');
   event.notification.close();
   const data = buildCmdDeepLink(event.notification.data || {});
+  data.checkedTag = clickedTag;
   event.waitUntil(
     (async () => {
+      let unreadCount = 0;
+      try {
+        const items = await readUnreadNotifsFromCache();
+        for (const it of items) {
+          if (!it) continue;
+          if (
+            (clickedTag && (it.tag === clickedTag || it.id === clickedTag)) ||
+            (data.taskId && it.taskId === data.taskId) ||
+            (data.openPrayer && it.openPrayer)
+          ) {
+            it.checked = true;
+          }
+        }
+        await writeUnreadNotifsToCache(items);
+        unreadCount = items.filter((x) => x && !x.checked).length;
+        await applySwAppBadge(unreadCount);
+      } catch {}
       try {
         const cache = await caches.open(NAV_CACHE);
         await cache.put(
@@ -158,17 +288,27 @@ self.addEventListener('notificationclick', (event) => {
       const cmdClients = clientList.filter((c) => isCommandClientUrl(c.url));
       for (const client of cmdClients) {
         try {
-          client.postMessage({ type: 'theo-command-nav', data });
+          client.postMessage({ type: 'theo-command-nav', data, checkedTag: clickedTag, unreadCount });
         } catch {}
         if ('focus' in client) {
           try {
             const focused = await client.focus();
             try {
-              (focused || client).postMessage({ type: 'theo-command-nav', data });
+              (focused || client).postMessage({
+                type: 'theo-command-nav',
+                data,
+                checkedTag: clickedTag,
+                unreadCount
+              });
             } catch {}
             setTimeout(() => {
               try {
-                (focused || client).postMessage({ type: 'theo-command-nav', data });
+                (focused || client).postMessage({
+                  type: 'theo-command-nav',
+                  data,
+                  checkedTag: clickedTag,
+                  unreadCount
+                });
               } catch {}
             }, 250);
             return focused;
