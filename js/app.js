@@ -180,13 +180,38 @@
     { id: 'tech', label: '⚡ Platform & Tech (THEO)', short: '⚡ Tech' }
   ];
 
-  const DEFAULT_TEAM_ROSTER = [
-    { id: 'tm_rami', name: 'Rami', role: 'Plant & Maintenance Ops', bu: 'manufacturing', phone: '' },
-    { id: 'tm_nadine', name: 'Nadine', role: 'Finance & Accounting', bu: 'holding', phone: '' },
-    { id: 'tm_jad', name: 'Jad', role: 'Trading & Customs Ops', bu: 'trading', phone: '' },
-    { id: 'tm_karim', name: 'Karim', role: 'Resort Operations', bu: 'hospitality', phone: '' },
-    { id: 'tm_maya', name: 'Maya', role: 'Real Estate & Brokerage', bu: 'realestate_ins', phone: '' }
+  const DEFAULT_TEAM_ROSTER = [];
+
+  const PURGED_DEMO_IDS = [
+    'tm_rami',
+    'tm_nadine',
+    'tm_jad',
+    'tm_karim',
+    'tm_maya',
+    'rem_1792434196959_1u79',
+    'rem_1792434196958_ar52',
+    'rem_1792434196957_72fe',
+    'rem_1792434196957_ynbs',
+    'rem_1792434196955_f5yu',
+    'rem_1792434196955_0h5v',
+    'rem_1792434196954_908z',
+    'rem_1792434196947_4xuc',
+    'rem_1792434196946_xlrd',
+    'rem_1792434196946_1scv'
   ];
+
+  const PURGED_DEMO_TITLES = new Set([
+    'idea for later: automated whatsapp daily briefing',
+    'want to play padel in batroun this weekend',
+    'family dinner with mom tonight',
+    'hold wtc supplier wire $6,500',
+    'review q4 bhfirms insurance renewal schedule',
+    'shipping time for shacman brake pads order in 5 days',
+    "paid $120 on whish for electricity and it didn't show up on the app",
+    'check korri shacman customs clearance documents',
+    'reconcile blanca resort october soa journal',
+    'inspect wtc filter press cloths and send pressure reading tomorrow'
+  ]);
 
   const cfg = window.THEO_CLOUD_CFG || {};
   const CLOUD_URL = cfg.u ? atob(cfg.u) : '';
@@ -234,6 +259,14 @@
     expandedRowId: '',
     openClusterSheetId: '',
     openSheetKind: '', // '' | 'cluster' | 'roster'
+    rosterSheetOpts: {
+      pickForDraft: false,
+      existingTaskId: '',
+      showAddForm: false,
+      manageMode: false,
+      editMemberId: '',
+      submitAction: 'assign'
+    },
     bridgeOrigin: '',
     syncMode: 'cloud',
     reminders: [],
@@ -450,7 +483,7 @@
     if (!incoming || typeof incoming !== 'object') return false;
     let changed = false;
 
-    const delSet = new Set(state.deletedIds || []);
+    const delSet = new Set([...(state.deletedIds || []), ...PURGED_DEMO_IDS]);
     if (Array.isArray(incoming.deletedIds)) {
       for (const dId of incoming.deletedIds) {
         if (dId && !delSet.has(dId)) {
@@ -460,15 +493,22 @@
       }
     }
 
+    const isDemoRem = (r) => {
+      if (!r || !r.id) return false;
+      if (delSet.has(r.id)) return true;
+      const t = String(r.title || '').trim().toLowerCase();
+      return PURGED_DEMO_TITLES.has(t);
+    };
+
     for (const r of state.reminders) {
-      if (r && r.id && r.deleted && !delSet.has(r.id)) {
+      if (r && r.id && (r.deleted || isDemoRem(r)) && !delSet.has(r.id)) {
         delSet.add(r.id);
         changed = true;
       }
     }
     if (Array.isArray(incoming.reminders)) {
       for (const r of incoming.reminders) {
-        if (r && r.id && r.deleted && !delSet.has(r.id)) {
+        if (r && r.id && (r.deleted || isDemoRem(r)) && !delSet.has(r.id)) {
           delSet.add(r.id);
           changed = true;
         }
@@ -477,17 +517,17 @@
 
     const beforeCount = state.reminders.length;
     state.reminders = state.reminders
-      .filter((r) => r && r.id && !r.deleted && !delSet.has(r.id))
+      .filter((r) => r && r.id && !r.deleted && !delSet.has(r.id) && !isDemoRem(r))
       .map((r) => normalizeReminderItem(r));
     if (state.reminders.length !== beforeCount) changed = true;
 
     if (Array.isArray(incoming.reminders)) {
       const map = new Map();
       for (const r of state.reminders) {
-        if (r && r.id && !delSet.has(r.id)) map.set(r.id, r);
+        if (r && r.id && !delSet.has(r.id) && !isDemoRem(r)) map.set(r.id, r);
       }
       for (const rawRem of incoming.reminders) {
-        if (!rawRem || !rawRem.id || rawRem.deleted || delSet.has(rawRem.id)) continue;
+        if (!rawRem || !rawRem.id || rawRem.deleted || delSet.has(rawRem.id) || isDemoRem(rawRem)) continue;
         const rem = normalizeReminderItem(rawRem);
         const cur = map.get(rem.id);
         if (!cur || Number(rem.updatedAt || 0) >= Number(cur.updatedAt || 0)) {
@@ -536,11 +576,23 @@
       }
     }
 
-    if (Array.isArray(incoming.teamRoster) && incoming.teamRoster.length) {
+    const beforeRosterLen = state.teamRoster.length;
+    state.teamRoster = state.teamRoster.filter((m) => m && m.id && !delSet.has(m.id));
+    if (state.teamRoster.length !== beforeRosterLen) changed = true;
+
+    if (Array.isArray(incoming.teamRoster)) {
       const rMap = new Map();
-      for (const m of state.teamRoster) rMap.set(m.id, m);
+      for (const m of state.teamRoster) {
+        if (m && m.id && !delSet.has(m.id)) rMap.set(m.id, m);
+      }
       for (const m of incoming.teamRoster) {
-        if (m && m.id) rMap.set(m.id, m);
+        if (m && m.id && !delSet.has(m.id)) {
+          const prev = rMap.get(m.id);
+          if (!prev || JSON.stringify(prev) !== JSON.stringify(m)) {
+            rMap.set(m.id, m);
+            changed = true;
+          }
+        }
       }
       state.teamRoster = Array.from(rMap.values());
     }
@@ -2837,44 +2889,15 @@
     if (dockScoreEl) {
       dockScoreEl.textContent = `${todaySc.total}%`;
     }
-
-    const strip = document.getElementById('hud-habit-strip');
-    if (!strip) return;
-    const rec = getDayRecord(todayIso());
-
-    const doChips = DAILY_DOS.map((d) => {
-      const st = rec.dos?.[d.id] || 'none';
-      const cls = st === 'full' ? 'do-full' : st === 'half' ? 'do-half' : '';
-      const badge = st === 'full' ? '+10' : st === 'half' ? '+5' : '';
-      return `
-        <button type="button" class="hud-habit-chip ${cls}" data-hud-habit="do:${d.id}" title="${esc(d.label)} (Tap to cycle 0% → +5% → +10%)">
-          <span>${d.icon}</span>
-          <span>${esc(d.short)}</span>
-          ${badge ? `<strong class="tabular">${badge}</strong>` : ''}
-        </button>
-      `;
-    }).join('');
-
-    const dontChips = DAILY_DONTS.map((dn) => {
-      const st = rec.donts?.[dn.id] || 'intact';
-      const cls = st === 'slip' ? 'dont-slip' : st === 'half' ? 'dont-half' : 'dont-kept';
-      const badge = st === 'slip' ? '-10' : st === 'half' ? '-5' : '';
-      return `
-        <button type="button" class="hud-habit-chip ${cls}" data-hud-habit="dont:${dn.id}" title="${esc(dn.label)} (Intact 10% · Tap if slipped -5% / -10%)">
-          <span>${dn.icon}</span>
-          <span>${esc(dn.short)}</span>
-          ${badge ? `<strong class="tabular">${badge}</strong>` : ''}
-        </button>
-      `;
-    }).join('');
-
-    strip.innerHTML = `${doChips}<span class="hud-divider"></span>${dontChips}`;
   }
 
   function renderLiveAdvisorDrawer() {
     const drawer = document.getElementById('live-advisor-drawer');
     const delBtn = document.getElementById('btn-pick-assignee');
+    const delIcon = document.getElementById('capture-assignee-icon');
     const delLbl = document.getElementById('capture-assignee-label');
+    const delClearBtn = document.getElementById('btn-clear-assignee');
+    const submitBtn = document.getElementById('capture-submit-btn');
     if (!drawer) return;
 
     const text = state.draft.text.trim();
@@ -2884,11 +2907,18 @@
     if (delBtn && delLbl) {
       if (activeAssignee) {
         delBtn.classList.add('active');
-        delLbl.textContent = `@${activeAssignee}`;
+        if (delIcon) delIcon.textContent = '👤';
+        delLbl.textContent = activeAssignee;
+        if (delClearBtn) delClearBtn.hidden = false;
       } else {
         delBtn.classList.remove('active');
-        delLbl.textContent = '@Delegate';
+        if (delIcon) delIcon.textContent = '👥';
+        delLbl.textContent = 'Delegate';
+        if (delClearBtn) delClearBtn.hidden = true;
       }
+    }
+    if (submitBtn) {
+      submitBtn.textContent = activeAssignee ? '+ Assign' : '+ Add';
     }
 
     if (!text && !state.draft.assigneeName && !state.draft.clusterOverride) {
@@ -3558,7 +3588,7 @@
                 `;
                 })
                 .join('')
-            : `<div style="padding:28px;text-align:center;color:var(--text-muted)">No delegated tasks in this filter. Type <strong>@Name</strong> in the top bar (e.g. <em>@Rami check WTC filter press</em>) to delegate and send a 1-tap WhatsApp tracking link!</div>`
+            : `<div style="padding:28px;text-align:center;color:var(--text-muted)">No delegated tasks in this filter yet. Tap <strong>👥 Delegate</strong> in the top bar (or <strong>👥 Team Roster</strong> above) to assign a task and send a 1-tap WhatsApp tracking link.</div>`
         }
       </div>
     `;
@@ -3960,55 +3990,308 @@
     backdrop.hidden = false;
   }
 
-  function openTeamRosterSheet(pickForDraft = false) {
+  function assignExistingTaskToMember(taskId, mem, sendWhatsApp = false) {
+    const item = state.reminders.find((r) => r.id === taskId);
+    if (!item || !mem) return false;
+    item.assigneeId = mem.id || '';
+    item.assigneeName = mem.name;
+    item.buId = mem.bu || item.buId || '';
+    item.subTag = `👤 ${mem.name}`;
+    item.subGroup = item.subTag;
+    item.isDelegated = true;
+    if (!item.delegationStatus) item.delegationStatus = 'assigned';
+    if (!item.taskToken) item.taskToken = randomToken(12);
+    item.updatedAt = Date.now();
+    saveLocalState();
+    renderAll();
+    syncAll(item).catch(() => {});
+    const backdrop = document.getElementById('sheet-backdrop');
+    if (backdrop) backdrop.hidden = true;
+    if (sendWhatsApp) {
+      dispatchWhatsAppDelegation(item.id);
+    } else {
+      showToast(`Assigned to 👤 ${mem.name}`);
+    }
+    return true;
+  }
+
+  function openTeamRosterSheet(rawOpts = false) {
     const backdrop = document.getElementById('sheet-backdrop');
     const titleWrap = document.getElementById('sheet-title-wrap');
     const body = document.getElementById('sheet-body');
     if (!backdrop || !titleWrap || !body) return;
 
+    const opts =
+      typeof rawOpts === 'boolean'
+        ? {
+            pickForDraft: rawOpts,
+            existingTaskId: '',
+            showAddForm: state.teamRoster.length === 0,
+            manageMode: false,
+            editMemberId: '',
+            submitAction: 'assign'
+          }
+        : {
+            pickForDraft: Boolean(rawOpts.pickForDraft),
+            existingTaskId: String(rawOpts.existingTaskId || ''),
+            showAddForm:
+              rawOpts.showAddForm !== undefined
+                ? Boolean(rawOpts.showAddForm)
+                : state.teamRoster.length === 0 || Boolean(rawOpts.editMemberId),
+            manageMode: Boolean(rawOpts.manageMode),
+            editMemberId: String(rawOpts.editMemberId || ''),
+            submitAction: String(rawOpts.submitAction || 'assign')
+          };
+
+    state.rosterSheetOpts = opts;
+    state.openClusterSheetId = '';
+
+    const existingTask = opts.existingTaskId
+      ? state.reminders.find((r) => r.id === opts.existingTaskId)
+      : null;
+    const isDelegatingFlow = opts.pickForDraft || Boolean(existingTask);
+    const hasRoster = state.teamRoster.length > 0;
+    const editingMember = opts.editMemberId
+      ? state.teamRoster.find((m) => m.id === opts.editMemberId)
+      : null;
+    const showForm = !hasRoster || opts.showAddForm || Boolean(editingMember);
+
     titleWrap.innerHTML = `
       <div>
-        <strong style="font-size:15px">👥 BHFIRMS Organization Roster &amp; Delegation</strong>
-        <div style="font-size:11px;color:var(--text-muted)">Tap any person to assign a task or add team members with WhatsApp numbers</div>
+        <strong style="font-size:15.5px">${
+          existingTask
+            ? '📲 Delegate Task'
+            : opts.pickForDraft
+              ? '👥 Delegate Task'
+              : '👥 Team Roster & Delegation'
+        }</strong>
+        <div style="font-size:11.5px;color:var(--text-muted)">${
+          existingTask
+            ? 'Pick who handles this task or send a 1-tap WhatsApp tracking link'
+            : hasRoster
+              ? 'Tap any team member to assign in 1 tap, or send directly on WhatsApp'
+              : 'Add a person below to delegate tasks & send live WhatsApp status links'
+        }</div>
       </div>
     `;
+
+    const timeChips = [
+      { k: 'auto', lbl: '✨ Auto (24h)' },
+      { k: 'tonight', lbl: '🌙 Tonight' },
+      { k: '1d', lbl: '🌅 Tomorrow' },
+      { k: '2d', lbl: '⏳ In 2d' },
+      { k: '7d', lbl: '📅 In 7d' },
+      { k: 'park', lbl: '📌 No Timer' }
+    ];
+
+    const taskCardHtml = existingTask
+      ? `
+        <div class="delegate-sheet-task-card">
+          <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:0.05em;color:var(--brass)">Task to Delegate</div>
+          <div style="font-size:14px;font-weight:700;color:var(--text-primary)">${esc(existingTask.title)}</div>
+        </div>
+      `
+      : opts.pickForDraft
+        ? `
+        <div class="delegate-sheet-task-card">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:6px">
+            <label for="delegate-sheet-task-input" style="font-size:11.5px;font-weight:800;color:var(--brass-bright)">
+              📋 What needs to be done?
+            </label>
+            ${
+              state.draft.assigneeName
+                ? `<span class="t-pill person">Selected: 👤 ${esc(state.draft.assigneeName)}</span>`
+                : `<span style="font-size:11px;color:var(--text-muted)">Step 1: Task · Step 2: Tap Person</span>`
+            }
+          </div>
+          <input
+            type="text"
+            id="delegate-sheet-task-input"
+            class="delegate-sheet-input"
+            value="${esc(state.draft.text)}"
+            placeholder="Type task here (or leave empty to just select @Person)…"
+          >
+          <div class="horiz-pill-strip" style="flex-wrap:wrap">
+            ${timeChips
+              .map(
+                (c) => `
+              <button type="button" class="mini-chip ${state.draft.waitChoice === c.k ? 'active' : ''}" data-sheet-wait-chip="${c.k}">
+                ${esc(c.lbl)}
+              </button>
+            `
+              )
+              .join('')}
+          </div>
+        </div>
+      `
+        : '';
+
+    const sectionBarHtml = hasRoster
+      ? `
+        <div class="delegate-section-bar">
+          <span class="delegate-section-title">Your Team (${state.teamRoster.length})</span>
+          <div style="display:flex;align-items:center;gap:6px">
+            <button type="button" class="mini-chip ${showForm && !editingMember ? 'active' : ''}" id="btn-toggle-roster-add">
+              ${showForm && !editingMember ? '✕ Hide Form' : '+ Add Person'}
+            </button>
+            <button type="button" class="mini-chip ${opts.manageMode ? 'active' : ''}" id="btn-toggle-roster-manage">
+              ${opts.manageMode ? '✓ Done Editing' : '✎ Edit List'}
+            </button>
+          </div>
+        </div>
+      `
+      : '';
+
+    const formCardHtml = showForm
+      ? `
+        <form id="roster-add-form" class="roster-form-card" autocomplete="off">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+            <strong style="font-size:13px;color:var(--text-primary)">
+              ${editingMember ? `✎ Edit ${esc(editingMember.name)}` : '👤 Add Team Member'}
+            </strong>
+            ${
+              hasRoster
+                ? `<button type="button" class="mini-chip" id="btn-cancel-roster-form">Cancel</button>`
+                : `<span style="font-size:11px;color:var(--text-muted)">Saved for 1-tap future delegation</span>`
+            }
+          </div>
+
+          <input
+            type="text"
+            id="roster-name"
+            class="roster-field"
+            placeholder="Person's name (required, e.g. Ali)"
+            value="${esc(editingMember ? editingMember.name : '')}"
+            required
+          >
+
+          <input
+            type="tel"
+            id="roster-phone"
+            class="roster-field"
+            placeholder="WhatsApp number (optional, e.g. +961 3 123 456)"
+            value="${esc(editingMember ? editingMember.phone || '' : '')}"
+          >
+
+          <div class="roster-form-grid-2">
+            <select id="roster-bu" class="roster-field">
+              ${BHFIRMS_BUS.map(
+                (b) =>
+                  `<option value="${b.id}" ${(editingMember?.bu || 'holding') === b.id ? 'selected' : ''}>${esc(
+                    b.short
+                  )} — ${esc(b.label.replace(/^[^\s]+\s*/, ''))}</option>`
+              ).join('')}
+            </select>
+            <input
+              type="text"
+              id="roster-role"
+              class="roster-field"
+              placeholder="Role / Title (optional)"
+              value="${esc(editingMember ? editingMember.role || '' : '')}"
+            >
+          </div>
+
+          <div class="roster-form-actions">
+            ${
+              editingMember
+                ? `<button type="submit" class="delegate-btn-assign primary" data-roster-submit="save">✓ Save Changes</button>`
+                : isDelegatingFlow
+                  ? `
+                    <button type="submit" class="delegate-btn-assign primary" data-roster-submit="assign">
+                      ✓ Save &amp; Assign
+                    </button>
+                    <button type="submit" class="delegate-btn-wa" data-roster-submit="whatsapp">
+                      📲 Save &amp; WhatsApp
+                    </button>
+                  `
+                  : `<button type="submit" class="delegate-btn-assign primary" data-roster-submit="save">+ Add to Team</button>`
+            }
+          </div>
+        </form>
+      `
+      : '';
+
+    const memberRowsHtml = hasRoster
+      ? `
+        <div class="delegate-member-list">
+          ${state.teamRoster
+            .map((m) => {
+              const buMeta = BHFIRMS_BUS.find((b) => b.id === m.bu);
+              const initial = String(m.name || '?')
+                .trim()
+                .charAt(0)
+                .toUpperCase();
+              const isSelected =
+                state.draft.assigneeId === m.id ||
+                (state.draft.assigneeName &&
+                  state.draft.assigneeName.toLowerCase() === String(m.name || '').toLowerCase());
+              const hasDraftText = Boolean(state.draft.text.trim()) || Boolean(existingTask);
+
+              return `
+                <div class="delegate-member-card ${isSelected ? 'is-selected' : ''}">
+                  <div class="delegate-member-main" data-pick-member="${esc(m.id)}" title="Tap to assign to ${esc(m.name)}">
+                    <div class="delegate-member-avatar">${esc(initial)}</div>
+                    <div class="delegate-member-info">
+                      <div class="delegate-member-name-row">
+                        <span>${esc(m.name)}</span>
+                        <span class="t-pill">${esc(buMeta ? buMeta.short : m.bu)}</span>
+                      </div>
+                      <div class="delegate-member-sub">
+                        ${m.role ? `${esc(m.role)} · ` : ''}${
+                          m.phone
+                            ? `<span style="color:var(--emerald)">📱 ${esc(m.phone)}</span>`
+                            : 'No WhatsApp number set'
+                        }
+                      </div>
+                    </div>
+                  </div>
+                  <div class="delegate-member-actions">
+                    ${
+                      opts.manageMode
+                        ? `
+                          <button type="button" class="t-act-btn" data-edit-member="${esc(m.id)}">✎ Edit</button>
+                          <button type="button" class="t-act-btn danger" data-del-member="${esc(m.id)}">🗑️ Remove</button>
+                        `
+                        : `
+                          <button type="button" class="delegate-btn-assign ${hasDraftText ? 'primary' : ''}" data-pick-member="${esc(m.id)}">
+                            ${hasDraftText ? '✓ Assign' : '✓ Select'}
+                          </button>
+                          <button type="button" class="delegate-btn-wa" data-wa-member="${esc(m.id)}" title="Assign &amp; send via WhatsApp">
+                            📲 WhatsApp
+                          </button>
+                        `
+                    }
+                  </div>
+                </div>
+              `;
+            })
+            .join('')}
+        </div>
+      `
+      : '';
 
     body.innerHTML = `
-      <form id="roster-add-form" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:10px;border-radius:10px;background:var(--bg-card);border:1px solid var(--border-subtle)">
-        <input type="text" id="roster-name" placeholder="Name (e.g. Rami)" required style="padding:7px 9px;border-radius:7px;background:var(--bg-ink);border:1px solid var(--border-subtle);font-size:12.5px">
-        <input type="text" id="roster-role" placeholder="Role (e.g. Plant Manager)" style="padding:7px 9px;border-radius:7px;background:var(--bg-ink);border:1px solid var(--border-subtle);font-size:12.5px">
-        <select id="roster-bu" style="padding:7px 9px;border-radius:7px;background:var(--bg-ink);border:1px solid var(--border-subtle);font-size:12.5px">
-          ${BHFIRMS_BUS.map((b) => `<option value="${b.id}">${esc(b.label)}</option>`).join('')}
-        </select>
-        <div style="display:flex;gap:5px">
-          <input type="tel" id="roster-phone" placeholder="WhatsApp (+961...)" style="flex:1;min-width:0;padding:7px 9px;border-radius:7px;background:var(--bg-ink);border:1px solid var(--border-subtle);font-size:12.5px">
-          <button type="submit" class="capture-submit-btn" style="padding:6px 10px">+ Save</button>
-        </div>
-      </form>
-
-      <div class="ticker-list">
-        ${state.teamRoster
-          .map((m) => {
-            const buMeta = BHFIRMS_BUS.find((b) => b.id === m.bu);
-            return `
-              <div class="habit-compact-row">
-                <div style="min-width:0;flex:1">
-                  <div style="font-size:13.5px;font-weight:700">👤 ${esc(m.name)} <span class="t-pill">${esc(buMeta ? buMeta.short : m.bu)}</span></div>
-                  <div style="font-size:11px;color:var(--text-muted)">${esc(m.role || 'Team')} ${m.phone ? `· 📱 ${esc(m.phone)}` : '· No phone set'}</div>
-                </div>
-                <div style="display:flex;gap:5px">
-                  <button type="button" class="t-act-btn primary" data-pick-member="${esc(m.id)}">
-                    ${pickForDraft ? 'Assign in Bar' : '+ Delegate Task'}
-                  </button>
-                  <button type="button" class="t-act-btn danger" data-del-member="${esc(m.id)}">✕</button>
-                </div>
-              </div>
-            `;
-          })
-          .join('')}
-      </div>
+      ${taskCardHtml}
+      ${sectionBarHtml}
+      ${formCardHtml}
+      ${memberRowsHtml}
     `;
     backdrop.hidden = false;
+
+    const sheetTaskInp = document.getElementById('delegate-sheet-task-input');
+    if (sheetTaskInp) {
+      sheetTaskInp.addEventListener('input', () => {
+        state.draft.text = sheetTaskInp.value;
+        const mainInp = document.getElementById('capture-input');
+        if (mainInp) mainInp.value = sheetTaskInp.value;
+        renderLiveAdvisorDrawer();
+        const hasTxt = Boolean(state.draft.text.trim());
+        body.querySelectorAll('.delegate-btn-assign[data-pick-member]').forEach((btn) => {
+          btn.textContent = hasTxt ? '✓ Assign' : '✓ Select';
+          btn.classList.toggle('primary', hasTxt);
+        });
+      });
+    }
   }
 
   function openNotificationCenterSheet() {
@@ -4425,14 +4708,6 @@
       renderAll();
     });
 
-    // Top HUD 10-Chip Quick Habit Strip
-    document.getElementById('hud-habit-strip')?.addEventListener('click', (e) => {
-      const chip = e.target.closest('[data-hud-habit]');
-      if (!chip) return;
-      const [group, id] = chip.getAttribute('data-hud-habit').split(':');
-      cycleHabitQuick(group, id);
-    });
-
     // Sync, Push, Theme buttons
     document.getElementById('btn-sync-now')?.addEventListener('click', () => {
       showToast('Syncing with Cloud Relay & Bridge…');
@@ -4474,7 +4749,21 @@
     });
 
     document.getElementById('btn-pick-assignee')?.addEventListener('click', () => {
-      openTeamRosterSheet(true);
+      openTeamRosterSheet({ pickForDraft: true });
+    });
+
+    document.getElementById('btn-clear-assignee')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      state.draft.assigneeId = '';
+      state.draft.assigneeName = '';
+      state.draft.assigneeBu = '';
+      if (state.draft.text) {
+        state.draft.text = state.draft.text.replace(/^@[A-Za-z0-9_]+\s*[:,-]?\s*/, '');
+        const inp = document.getElementById('capture-input');
+        if (inp) inp.value = state.draft.text;
+      }
+      renderLiveAdvisorDrawer();
+      showToast('Cleared assignee');
     });
 
     // Live Advisor Drawer clicks
@@ -4692,10 +4981,12 @@
         }
         if (act === 'whatsapp') {
           if (!item.assigneeName) {
-            const who = prompt('Assign & send via WhatsApp to who? (e.g. Rami, Nadine, Jad):', '');
-            if (!who) return;
-            item.assigneeName = who.trim();
-            item.isDelegated = true;
+            openTeamRosterSheet({
+              pickForDraft: false,
+              existingTaskId: item.id,
+              showAddForm: state.teamRoster.length === 0
+            });
+            return;
           }
           dispatchWhatsAppDelegation(item.id);
           return;
@@ -4900,52 +5191,200 @@
         }
         return;
       }
+      const sheetWaitChip = e.target.closest('[data-sheet-wait-chip]');
+      if (sheetWaitChip) {
+        state.draft.waitChoice = sheetWaitChip.getAttribute('data-sheet-wait-chip') || 'auto';
+        renderLiveAdvisorDrawer();
+        openTeamRosterSheet(state.rosterSheetOpts);
+        return;
+      }
+
+      if (e.target.closest('#btn-toggle-roster-add')) {
+        const cur = state.rosterSheetOpts || {};
+        openTeamRosterSheet({
+          ...cur,
+          showAddForm: !cur.showAddForm,
+          editMemberId: ''
+        });
+        return;
+      }
+
+      if (e.target.closest('#btn-cancel-roster-form')) {
+        const cur = state.rosterSheetOpts || {};
+        openTeamRosterSheet({
+          ...cur,
+          showAddForm: false,
+          editMemberId: ''
+        });
+        return;
+      }
+
+      if (e.target.closest('#btn-toggle-roster-manage')) {
+        const cur = state.rosterSheetOpts || {};
+        openTeamRosterSheet({
+          ...cur,
+          manageMode: !cur.manageMode,
+          editMemberId: ''
+        });
+        return;
+      }
+
+      const rosterSubmitBtn = e.target.closest('[data-roster-submit]');
+      if (rosterSubmitBtn) {
+        state.rosterSheetOpts.submitAction =
+          rosterSubmitBtn.getAttribute('data-roster-submit') || 'assign';
+      }
+
+      const editM = e.target.closest('[data-edit-member]');
+      if (editM) {
+        const mId = editM.getAttribute('data-edit-member');
+        openTeamRosterSheet({
+          ...(state.rosterSheetOpts || {}),
+          showAddForm: true,
+          editMemberId: mId
+        });
+        return;
+      }
+
+      const waM = e.target.closest('[data-wa-member]');
+      if (waM) {
+        const mId = waM.getAttribute('data-wa-member');
+        const mem = state.teamRoster.find((m) => m.id === mId);
+        if (mem) {
+          const exId = state.rosterSheetOpts?.existingTaskId;
+          if (exId) {
+            assignExistingTaskToMember(exId, mem, true);
+            return;
+          }
+          state.draft.assigneeId = mem.id;
+          state.draft.assigneeName = mem.name;
+          state.draft.assigneeBu = mem.bu;
+          if (state.draft.text.trim()) {
+            if (backdrop) backdrop.hidden = true;
+            await addTaskFromDraft(true);
+          } else {
+            openTeamRosterSheet(state.rosterSheetOpts);
+            const tInp = document.getElementById('delegate-sheet-task-input');
+            if (tInp) tInp.focus();
+            showToast(`Selected 👤 ${mem.name} — type the task above, then tap 📲 WhatsApp`);
+          }
+        }
+        return;
+      }
+
       const pickM = e.target.closest('[data-pick-member]');
       if (pickM) {
         const mId = pickM.getAttribute('data-pick-member');
         const mem = state.teamRoster.find((m) => m.id === mId);
         if (mem) {
+          const exId = state.rosterSheetOpts?.existingTaskId;
+          if (exId) {
+            assignExistingTaskToMember(exId, mem, false);
+            return;
+          }
           state.draft.assigneeId = mem.id;
           state.draft.assigneeName = mem.name;
           state.draft.assigneeBu = mem.bu;
-          if (backdrop) backdrop.hidden = true;
-          renderLiveAdvisorDrawer();
-          document.getElementById('capture-input')?.focus();
-          showToast(`Delegating to 👤 ${mem.name}`);
+          if (state.draft.text.trim()) {
+            if (backdrop) backdrop.hidden = true;
+            await addTaskFromDraft(false);
+          } else {
+            if (backdrop) backdrop.hidden = true;
+            renderLiveAdvisorDrawer();
+            document.getElementById('capture-input')?.focus();
+            showToast(`Delegating to 👤 ${mem.name} — type your task & tap + Assign`);
+          }
         }
         return;
       }
       const delM = e.target.closest('[data-del-member]');
       if (delM) {
         const mId = delM.getAttribute('data-del-member');
+        if (mId && !state.deletedIds.includes(mId)) {
+          state.deletedIds.push(mId);
+        }
         state.teamRoster = state.teamRoster.filter((m) => m.id !== mId);
         saveLocalState();
-        openTeamRosterSheet(false);
+        openTeamRosterSheet({
+          ...(state.rosterSheetOpts || {}),
+          editMemberId: ''
+        });
+        syncAll().catch(() => {});
+        showToast('Removed from team roster');
         return;
       }
       handleTaskInteraction(e);
     });
 
-    document.getElementById('sheet-body')?.addEventListener('submit', (e) => {
+    document.getElementById('sheet-body')?.addEventListener('submit', async (e) => {
       if (handleCustomLocSubmit(e)) return;
       if (e.target.id === 'roster-add-form') {
         e.preventDefault();
         const name = document.getElementById('roster-name')?.value?.trim();
-        const role = document.getElementById('roster-role')?.value?.trim();
+        const role = document.getElementById('roster-role')?.value?.trim() || '';
         const bu = document.getElementById('roster-bu')?.value || 'holding';
         const phone = document.getElementById('roster-phone')?.value?.trim() || '';
         if (!name) return;
-        state.teamRoster.push({
-          id: `tm_${Date.now().toString(36)}`,
-          name,
-          role,
-          bu,
-          phone
-        });
+
+        const opts = state.rosterSheetOpts || {};
+        const subAct = e.submitter?.getAttribute?.('data-roster-submit') || opts.submitAction || 'assign';
+        let savedMember = null;
+
+        if (opts.editMemberId) {
+          const idx = state.teamRoster.findIndex((m) => m.id === opts.editMemberId);
+          if (idx >= 0) {
+            state.teamRoster[idx] = {
+              ...state.teamRoster[idx],
+              name,
+              role,
+              bu,
+              phone
+            };
+            savedMember = state.teamRoster[idx];
+          }
+        }
+        if (!savedMember) {
+          savedMember = {
+            id: `tm_${Date.now().toString(36)}`,
+            name,
+            role,
+            bu,
+            phone
+          };
+          state.teamRoster.push(savedMember);
+        }
+
         saveLocalState();
-        openTeamRosterSheet(false);
+        renderAll();
         syncAll().catch(() => {});
-        showToast(`Added 👤 ${name} to BHFIRMS Roster`);
+
+        if (opts.existingTaskId && (subAct === 'assign' || subAct === 'whatsapp')) {
+          assignExistingTaskToMember(opts.existingTaskId, savedMember, subAct === 'whatsapp');
+          return;
+        }
+
+        if (opts.pickForDraft && (subAct === 'assign' || subAct === 'whatsapp')) {
+          state.draft.assigneeId = savedMember.id;
+          state.draft.assigneeName = savedMember.name;
+          state.draft.assigneeBu = savedMember.bu;
+          if (state.draft.text.trim()) {
+            if (backdrop) backdrop.hidden = true;
+            await addTaskFromDraft(subAct === 'whatsapp');
+          } else {
+            if (backdrop) backdrop.hidden = true;
+            renderLiveAdvisorDrawer();
+            document.getElementById('capture-input')?.focus();
+            showToast(`Added & selected 👤 ${savedMember.name}`);
+          }
+          return;
+        }
+
+        openTeamRosterSheet({
+          ...opts,
+          showAddForm: false,
+          editMemberId: ''
+        });
+        showToast(opts.editMemberId ? `Updated 👤 ${name}` : `Added 👤 ${name} to Team Roster`);
       }
     });
   }
@@ -5029,7 +5468,7 @@
         }
       });
       navigator.serviceWorker
-        .register('./sw.js?v=13', { updateViaCache: 'none' })
+        .register('./sw.js?v=15', { updateViaCache: 'none' })
         .then(async (reg) => {
           reg.update().catch(() => {});
           if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });

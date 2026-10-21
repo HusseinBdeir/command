@@ -9,13 +9,13 @@
   <meta name="apple-mobile-web-app-title" content="Planner">
   <meta name="description" content="Planner — Standalone Executive &amp; Personal PWA for Planning, Tasks &amp; Wait Timers, BHFIRMS Delegation, Daily 100% Score &amp; Shia Prayer Times.">
   <title>Planner — Planning, Tasks, Delegation, Score &amp; Prayer Times</title>
-  <link rel="manifest" href="manifest.json?v=14">
-  <link rel="icon" type="image/svg+xml" href="icon.svg?v=14">
-  <link rel="apple-touch-icon" href="icon-180.png?v=14">
+  <link rel="manifest" href="manifest.json?v=15">
+  <link rel="icon" type="image/svg+xml" href="icon.svg?v=15">
+  <link rel="apple-touch-icon" href="icon-180.png?v=15">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@700;800&family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/command.css?v=14">
+  <link rel="stylesheet" href="css/command.css?v=15">
   <script id="pre">
     (() => {
       try {
@@ -37,10 +37,10 @@
 
   <!-- EXECUTIVE OWNER APP SHELL -->
   <div id="owner-app-shell" class="cmd-shell">
-    <!-- Pinned 52px Top Discipline & Prayer HUD Ribbon -->
+    <!-- Pinned Top HUD Ribbon -->
     <header class="hud-ribbon" id="hud-ribbon">
       <div class="hud-left">
-        <img src="icon.svg?v=14" alt="Planner" class="hud-logo">
+        <img src="icon.svg?v=15" alt="Planner" class="hud-logo">
         <div class="hud-brand-copy">
           <span class="hud-brand-name">PLANNER</span>
         </div>
@@ -50,9 +50,6 @@
           <span class="hud-score-delta tabular" id="hud-score-delta">Base 50%</span>
         </button>
       </div>
-
-      <!-- 10-Chip Horizontal Quick-Toggle Habit Strip (5 Do's + 5 Don'ts) -->
-      <div class="hud-habit-strip" id="hud-habit-strip" aria-label="Quick 1-Tap Daily Do's and Don'ts"></div>
 
       <div class="hud-right">
         <button type="button" class="hud-prayer-pill" id="btn-prayer-hud" title="Open Shia Prayer Times (Fajr, Dohor, Maghrib) &amp; Location Alerts">
@@ -79,7 +76,7 @@
       </div>
     </header>
 
-    <!-- Pinned Single-Line Universal Brain-Dump & @Delegate Bar -->
+    <!-- Pinned Single-Line Universal Brain-Dump & Delegate Bar -->
     <section class="capture-bar-wrap" id="capture-bar-wrap">
       <form class="capture-form" id="capture-form" autocomplete="off">
         <div class="capture-input-shell">
@@ -88,12 +85,15 @@
             type="text"
             id="capture-input"
             class="capture-input"
-            placeholder="Drop anything: @Rami check WTC filter press, Paid $120 on Whish didn't show up, Shipping 5d…"
+            placeholder="Add a task, wait timer, payment hold, or @Name to delegate…"
           >
-          <button type="button" class="capture-delegate-btn" id="btn-pick-assignee" title="Assign / Delegate to someone in BHFIRMS (@Person)">
-            <span>👥</span>
-            <span id="capture-assignee-label">@Delegate</span>
-          </button>
+          <div class="capture-delegate-group" id="capture-delegate-group">
+            <button type="button" class="capture-delegate-btn" id="btn-pick-assignee" title="Delegate task to someone">
+              <span id="capture-assignee-icon">👥</span>
+              <span id="capture-assignee-label">Delegate</span>
+            </button>
+            <button type="button" class="capture-delegate-clear" id="btn-clear-assignee" title="Clear selected person" aria-label="Clear assignee" hidden>✕</button>
+          </div>
         </div>
         <button type="submit" class="capture-submit-btn" id="capture-submit-btn">+ Add</button>
       </form>
@@ -176,7 +176,7 @@
   <!-- Toast Stack -->
   <div class="toast-stack" id="toast-stack" aria-live="polite"></div>
 
-  <script src="js/endpoints.js?v=14"></script>
-  <script src="js/app.js?v=14"></script>
+  <script src="js/endpoints.js?v=15"></script>
+  <script src="js/app.js?v=15"></script>
 </body>
 </html>
