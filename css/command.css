@@ -498,27 +498,6 @@ button {
   z-index: 3;
 }
 
-.hud-theo-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  padding: 4px 8px;
-  border-radius: 8px;
-  background: var(--bg-subtle);
-  border: 1px solid var(--border-subtle);
-  color: var(--brass-bright);
-  font-family: 'Archivo', sans-serif;
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  text-decoration: none;
-}
-
-.hud-theo-link svg {
-  width: 11px;
-  height: 11px;
-}
-
 @media (max-width: 640px) {
   .hud-ribbon {
     padding: max(6px, env(safe-area-inset-top, 6px)) 10px 6px 10px;
@@ -547,10 +526,6 @@ button {
   }
   #sync-label {
     display: none;
-  }
-  .hud-theo-link {
-    padding: 4px 6px;
-    font-size: 10.5px;
   }
 }
 
