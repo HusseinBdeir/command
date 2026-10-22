@@ -114,72 +114,105 @@
     { id: 'adult18', label: '18+ things', short: '18+', icon: '🔞', sub: '10% held intact when avoided' }
   ];
 
+  const CLUSTER_SVGS = {
+    people: `<svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><circle cx="6.5" cy="5.8" r="2.5"/><path d="M2 14.8c0-2.4 2-4.2 4.5-4.2s4.5 1.8 4.5 4.2"/><circle cx="12.8" cy="6.4" r="2"/><path d="M12.2 10.6c2 .3 3.6 1.7 3.6 3.8"/></svg>`,
+    verify: `<svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="5.2"/><path d="M12 12l3.8 3.8"/><path d="M5.8 8.1l1.5 1.5 3-3.1"/></svg>`,
+    shipping: `<svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><path d="M9 2.2L15.2 5.6v6.8L9 15.8 2.8 12.4V5.6L9 2.2z"/><path d="M2.8 5.6L9 9l6.2-3.4M9 9v6.8"/></svg>`,
+    work: `<svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><rect x="2.2" y="5" width="13.6" height="10.2" rx="1.8"/><path d="M6.2 5V3.6A1.4 1.4 0 0 1 7.6 2.2h2.8a1.4 1.4 0 0 1 1.4 1.4V5M2.2 9.4h13.6"/></svg>`,
+    payments: `<svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="14" height="10" rx="1.8"/><path d="M2 7.6h14M5.5 11.2h2.5"/></svg>`,
+    family: `<svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 8.2L9 2.8l6.5 5.4"/><path d="M4.2 6.8v8.2h9.6V6.8"/><path d="M7.4 15v-4.2h3.2V15"/></svg>`,
+    want_to_do: `<svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><polygon points="9 2.2 11.1 6.5 15.8 7.2 12.4 10.5 13.2 15.2 9 13 4.8 15.2 5.6 10.5 2.2 7.2 6.9 6.5 9 2.2"/></svg>`,
+    ideas: `<svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 13.2h5M7.2 15.5h3.6"/><path d="M5.6 10.6A5 5 0 1 1 12.4 10.6c-.6.6-1 1.3-1.1 2.1H6.7c-.1-.8-.5-1.5-1.1-2.1z"/></svg>`
+  };
+
   const CLUSTERS = [
     {
       id: 'people',
       label: 'People & Follow-Ups',
       shortLabel: 'People',
       icon: '🗣️',
-      sub: 'Calls, check-ins & delegated follow-ups'
+      svg: CLUSTER_SVGS.people,
+      sub: 'Calls, check-ins & delegated follow-ups',
+      templates: ['@Ali Follow up on site status tomorrow', 'Call accountant re monthly closing']
     },
     {
       id: 'verify',
       label: 'Verify / App Sync',
       shortLabel: 'Verify / App',
       icon: '🔍',
-      sub: 'Paid & waiting to show up on app / bank'
+      svg: CLUSTER_SVGS.verify,
+      sub: 'Paid & waiting to show up on app / bank',
+      templates: ['Verify Whish / bank transfer cleared in 24h', 'Check Meta Ads balance reflected']
     },
     {
       id: 'shipping',
       label: 'Shipping & Orders',
       shortLabel: 'Shipping',
       icon: '📦',
-      sub: 'Packages, spare parts & arrival timers'
+      svg: CLUSTER_SVGS.shipping,
+      sub: 'Packages, spare parts & arrival timers',
+      templates: ['Track Shacman spare parts shipment in 5 days', 'Confirm WTC plant part delivery']
     },
     {
       id: 'work',
       label: 'Work & BUs',
       shortLabel: 'Work',
       icon: '💼',
-      sub: 'Resorts, WTC, Korri, Real Estate, Ins, Holding'
+      svg: CLUSTER_SVGS.work,
+      sub: 'Resorts, WTC, Korri, Real Estate, Ins, Holding',
+      templates: ['Review WTC daily batch & tonnage report', 'Audit Resort SOA journal entries']
     },
     {
       id: 'payments',
       label: 'Payments & Holds',
       shortLabel: 'Payments',
       icon: '💸',
-      sub: 'Wait-to-pay cooling-off holds & wires'
+      svg: CLUSTER_SVGS.payments,
+      sub: 'Wait-to-pay cooling-off holds & wires',
+      templates: ['Hold supplier wire $2,500 for 4d cooling-off', 'Schedule monthly rent / lease settlement']
     },
     {
       id: 'family',
       label: 'Family & Home',
       shortLabel: 'Family',
       icon: '👨‍👩‍👧',
-      sub: 'Family plans, parents & home errands'
+      svg: CLUSTER_SVGS.family,
+      sub: 'Family plans, parents & home errands',
+      templates: ['Dinner with parents tonight 20:00', 'Check home maintenance & utilities']
     },
     {
       id: 'want_to_do',
       label: 'Want To Do',
       shortLabel: 'Want to Do',
       icon: '🌟',
-      sub: 'Personal plans, places & weekend list'
+      svg: CLUSTER_SVGS.want_to_do,
+      sub: 'Personal plans, places & weekend list',
+      templates: ['Book padel court for weekend', 'Plan weekend coastal drive']
     },
     {
       id: 'ideas',
       label: 'Ideas for Later',
       shortLabel: 'Ideas',
       icon: '💡',
-      sub: 'Product concepts & future automations'
+      svg: CLUSTER_SVGS.ideas,
+      sub: 'Product concepts & future automations',
+      templates: ['Automation concept: WhatsApp daily plant brief', 'New ISABI dashboard module idea']
     }
   ];
 
   const BHFIRMS_BUS = [
-    { id: 'hospitality', label: '🏖️ Hospitality (Resorts)', short: '🏖️ Resorts' },
-    { id: 'manufacturing', label: '🏗️ Manufacturing (WTC / BBC / Lions)', short: '🏗️ WTC · Mfg' },
-    { id: 'trading', label: '🚛 Trading (Korri / Shacman)', short: '🚛 Korri · Trading' },
-    { id: 'realestate_ins', label: '🏢 Real Estate & Insurance', short: '🏢 RE · Ins' },
-    { id: 'holding', label: '🏛️ Holding & Finance', short: '🏛️ Holding' },
-    { id: 'tech', label: '⚡ Platform & Tech (THEO)', short: '⚡ Tech' }
+    { id: 'hospitality', label: 'Hospitality (Resorts)', short: 'Resorts', sub: 'Blanca · La Una · Palms · Voile · Platinum' },
+    { id: 'manufacturing', label: 'Manufacturing (WTC / BBC / Lions)', short: 'WTC · Mfg', sub: 'Concrete · Quarry · Transport' },
+    { id: 'trading', label: 'Trading (Korri / Shacman)', short: 'Korri · Trading', sub: 'Heavy Trucks · Parts · Workshop' },
+    { id: 'realestate_ins', label: 'Real Estate & Insurance', short: 'RE · Ins', sub: 'Properties · Brokerage · Policies' },
+    { id: 'holding', label: 'Holding & Finance', short: 'Holding', sub: 'Bdeir Holding · SOA · Tax & Audit' },
+    { id: 'tech', label: 'Platform & Tech (THEO)', short: 'Tech', sub: 'ISABI Systems · PWAs · Automations' }
+  ];
+
+  const PRIORITY_LEVELS = [
+    { id: 'p1', label: 'P1 · Critical' },
+    { id: 'p2', label: 'P2 · High' },
+    { id: 'p3', label: 'P3 · Normal' }
   ];
 
   const DEFAULT_TEAM_ROSTER = [];
@@ -250,17 +283,22 @@
   const state = {
     theme: localStorage.getItem('theo_cmd_theme_v2') === 'dark' ? 'dark' : 'light',
     activeTab: 'planning', // 'planning' | 'tasks' | 'delegated' | 'score' | 'prayers'
-    planningMode: 'radar', // 'radar' | 'clusters' | 'subtopics'
+    planningMode: 'radar', // 'radar' | 'horizon' | 'bus' | 'clusters' | 'subtopics'
+    selectedPlanDate: '', // '' or 'YYYY-MM-DD'
     scoreDate: todayIso(),
     boardFilter: 'all',
-    boardGroupBy: 'cluster', // 'cluster' | 'subtopic'
-    taskFilter: 'all', // 'all' | 'ready' | 'action' | 'timers' | 'verify' | 'shipping' | 'payments' | 'recurring' | 'ideas' | 'done'
+    boardGroupBy: 'cluster',
+    taskFilter: 'all',
     timerFilter: 'all',
+    delegatedViewMode: 'pipeline', // 'pipeline' | 'people' | 'list'
     delegatedBuFilter: 'all',
     delegatedStatusFilter: 'all',
+    showInlineNewPerson: false,
+    fastDelPersonId: '',
     expandedRowId: '',
     openClusterSheetId: '',
-    openSheetKind: '', // '' | 'cluster' | 'roster' | 'notifications'
+    openTaskWorkbenchId: '',
+    openSheetKind: '', // '' | 'cluster' | 'roster' | 'notifications' | 'task'
     sheetOpenedWithUnreadIds: [],
     rosterSheetOpts: {
       pickForDraft: false,
@@ -286,11 +324,15 @@
     draft: {
       text: '',
       waitChoice: 'auto',
+      horizon: 'auto', // 'auto' | 'today' | 'tomorrow' | 'week' | 'backlog'
+      priority: '', // '' | 'p1' | 'p2' | 'p3'
       clusterOverride: '',
       customGroup: '',
       assigneeId: '',
       assigneeName: '',
       assigneeBu: '',
+      notes: '',
+      checklistRaw: '',
       recur: 'none'
     }
   };
@@ -361,6 +403,39 @@
     };
   }
 
+  function normalizeChecklistArray(rawList) {
+    if (!Array.isArray(rawList)) return [];
+    return rawList
+      .map((st, idx) => {
+        if (!st) return null;
+        if (typeof st === 'string') {
+          const txt = st.trim();
+          return txt ? { id: `st_${idx}_${txt.slice(0, 8).replace(/\W/g, '')}`, text: txt, done: false } : null;
+        }
+        const txt = String(st.text || st.title || '').trim();
+        if (!txt) return null;
+        return {
+          id: String(st.id || `st_${idx}`),
+          text: txt,
+          done: Boolean(st.done || st.completed)
+        };
+      })
+      .filter(Boolean);
+  }
+
+  function parseChecklistStepsFromText(rawStr) {
+    if (!rawStr || typeof rawStr !== 'string') return [];
+    return rawStr
+      .split(/[\n|;]+/)
+      .map((s) => s.replace(/^[-*•☐✓\d.)\s]+/, '').trim())
+      .filter(Boolean)
+      .map((text, idx) => ({
+        id: `st_${Date.now().toString(36)}_${idx}`,
+        text,
+        done: false
+      }));
+  }
+
   function normalizeReminderItem(rem) {
     if (!rem || typeof rem !== 'object') return rem;
     const completed = Boolean(rem.completed || rem.status === 'done');
@@ -368,15 +443,26 @@
       rem.subTag ||
       rem.subGroup ||
       rem.customGroup ||
-      (rem.assigneeName ? `👤 ${rem.assigneeName}` : '');
+      (rem.assigneeName ? `@${rem.assigneeName}` : '');
     const isParkedIdea =
       (rem.category === 'ideas' || rem.category === 'want_to_do') &&
       !rem.matureAt &&
-      rem.kind !== 'wait';
+      rem.kind !== 'wait' &&
+      rem.horizon !== 'today' &&
+      rem.horizon !== 'tomorrow';
+    const rawPri = String(rem.priority || '').toLowerCase();
+    const priority = rawPri === 'p1' || rawPri === 'p2' || rawPri === 'p3' ? rawPri : 'p3';
+    const rawHor = String(rem.horizon || '').toLowerCase();
+    const horizon = ['today', 'tomorrow', 'week', 'backlog'].includes(rawHor) ? rawHor : '';
+    const checklist = normalizeChecklistArray(rem.checklist);
     return {
       ...rem,
       completed,
       status: completed ? 'done' : 'open',
+      priority,
+      horizon,
+      notes: String(rem.notes || '').trim(),
+      checklist,
       subTag,
       subGroup: rem.subGroup || subTag,
       kind: isParkedIdea ? 'parked' : rem.kind || 'task',
@@ -682,13 +768,20 @@
         rem.delegationStatus = nextStatus;
         rem.staffNote = nextNote;
         rem.staffUpdatedAt = dTask.staffUpdatedAt || rem.staffUpdatedAt || '';
+        if (Array.isArray(dTask.checklist) && dTask.checklist.length > 0) {
+          rem.checklist = normalizeChecklistArray(dTask.checklist);
+        }
         rem.updatedAt = Math.max(Number(rem.updatedAt || 0), staffTs || Date.now());
         changed = true;
 
         if (
           state.notifPrefs.enabled !== false &&
           state.notifPrefs.delegations !== false &&
-          (nextStatus === 'seen' || nextStatus === 'working' || nextStatus === 'done' || noteChanged) &&
+          (nextStatus === 'seen' ||
+            nextStatus === 'working' ||
+            nextStatus === 'blocked' ||
+            nextStatus === 'done' ||
+            noteChanged) &&
           staffTs > 0 &&
           Date.now() - staffTs < 12 * 3600 * 1000
         ) {
@@ -700,6 +793,7 @@
             const stTitles = {
               seen: `👀 ${who} saw task`,
               working: `⚙️ ${who} is working on task`,
+              blocked: `⚠️ ${who} flagged task blocked`,
               done: `✅ ${who} completed task`
             };
             const title = stTitles[nextStatus] || `👤 ${who} updated task`;
@@ -713,7 +807,7 @@
               tab: 'delegated',
               taskId: rem.id,
               url: `./?tab=delegated&taskId=${encodeURIComponent(rem.id)}`,
-              requireInteraction: nextStatus === 'done'
+              requireInteraction: nextStatus === 'done' || nextStatus === 'blocked'
             });
           }
         }
@@ -885,12 +979,12 @@
     let buId = assigneeBu || '';
     let buTag = '';
     const buRules = [
-      { id: 'hospitality', tag: '🏖️ Resorts', rx: /\b(blanca|la\s*una|palms|voile|platinum|resort|hospitality|beach|cabana|kitchen|pos)\b/i },
-      { id: 'manufacturing', tag: '🏗️ WTC · Mfg', rx: /\b(wtc|bbc|bbconstruction|lions|concrete|batch|cement|quarry|filter\s*press|mixer|manufacturing|plant)\b/i },
-      { id: 'trading', tag: '🚛 Korri · Trading', rx: /\b(korri|shacman|truck|vin|customs|spare\s*part|workshop|trading)\b/i },
-      { id: 'realestate_ins', tag: '🏢 RE · Ins', rx: /\b(real\s*estate|tenant|lease|rent|unit|insurance|policy|brokerage|claim|underwrit)\b/i },
-      { id: 'holding', tag: '🏛️ Holding', rx: /\b(holding|vat|tax|audit|coa|payroll|accounting|journal|soa)\b/i },
-      { id: 'tech', tag: '⚡ Tech', rx: /\b(theo|claude|antigravity|pwa|flow|power\s*automate|script|github|vscode)\b/i }
+      { id: 'hospitality', tag: 'Resorts', rx: /\b(blanca|la\s*una|palms|voile|platinum|resort|hospitality|beach|cabana|kitchen|pos)\b/i },
+      { id: 'manufacturing', tag: 'WTC · Mfg', rx: /\b(wtc|bbc|bbconstruction|lions|concrete|batch|cement|quarry|filter\s*press|mixer|manufacturing|plant)\b/i },
+      { id: 'trading', tag: 'Korri · Trading', rx: /\b(korri|shacman|truck|vin|customs|spare\s*part|workshop|trading)\b/i },
+      { id: 'realestate_ins', tag: 'RE · Ins', rx: /\b(real\s*estate|tenant|lease|rent|unit|insurance|policy|brokerage|claim|underwrit)\b/i },
+      { id: 'holding', tag: 'Holding', rx: /\b(holding|vat|tax|audit|coa|payroll|accounting|journal|soa)\b/i },
+      { id: 'tech', tag: 'Tech', rx: /\b(theo|claude|antigravity|pwa|flow|power\s*automate|script|github|vscode)\b/i }
     ];
     for (const r of buRules) {
       if (r.rx.test(text)) {
@@ -907,11 +1001,11 @@
     // 3. Detect App / Bank Tag
     let appTag = '';
     const appRules = [
-      { label: '📱 Whish', rx: /\b(whish|wish money)\b/i },
-      { label: '📱 OMT', rx: /\b(omt)\b/i },
-      { label: '📱 Bank', rx: /\b(bank|audi|blom|byblos|fransabank|neo|statement|wire)\b/i },
-      { label: '📱 Stripe/Wise', rx: /\b(stripe|paypal|wise|revolut)\b/i },
-      { label: '📱 App Sync', rx: /\b(on the app|certain app|in the app|show up|didn'?t show|not showing)\b/i }
+      { label: 'Whish', rx: /\b(whish|wish money)\b/i },
+      { label: 'OMT', rx: /\b(omt)\b/i },
+      { label: 'Bank', rx: /\b(bank|audi|blom|byblos|fransabank|neo|statement|wire)\b/i },
+      { label: 'Stripe/Wise', rx: /\b(stripe|paypal|wise|revolut)\b/i },
+      { label: 'App Sync', rx: /\b(on the app|certain app|in the app|show up|didn'?t show|not showing)\b/i }
     ];
     for (const a of appRules) {
       if (a.rx.test(text)) {
@@ -929,6 +1023,14 @@
       amount = Number(amtMatch[1].replace(/,/g, '')) || 0;
     }
 
+    // 5. Detect Priority
+    let priority = 'p3';
+    if (/\b(p1|urgent|critical|asap|immediately|emergency)\b/i.test(text)) {
+      priority = 'p1';
+    } else if (/\b(p2|important|high priority|must do)\b/i.test(text)) {
+      priority = 'p2';
+    }
+
     return {
       assigneeId,
       assigneeName,
@@ -936,6 +1038,7 @@
       buTag,
       appTag,
       amount,
+      priority,
       isDelegation
     };
   }
@@ -993,30 +1096,54 @@
     return CLUSTERS.find((c) => c.id === 'work');
   }
 
-  function parseNaturalTiming(text = '', clusterId = 'work', amount = 0) {
+  function parseNaturalTiming(text = '', clusterId = 'work', amount = 0, horizonOverride = '') {
     const s = String(text || '').toLowerCase();
     const now = Date.now();
+
+    if (horizonOverride === 'today') {
+      const t = new Date(now);
+      t.setHours(18, 0, 0, 0);
+      if (t.getTime() <= now) t.setTime(now + 2 * 3600000);
+      return { targetAt: t.getTime(), label: 'Today', isHold: false, recur: 'none', horizon: 'today' };
+    }
+    if (horizonOverride === 'tomorrow') {
+      const t = new Date(now + 86400000);
+      t.setHours(10, 0, 0, 0);
+      return { targetAt: t.getTime(), label: 'Tomorrow 10:00', isHold: false, recur: 'none', horizon: 'tomorrow' };
+    }
+    if (horizonOverride === 'week') {
+      return { targetAt: now + 3 * 86400000, label: 'This Week (+3d)', isHold: false, recur: 'none', horizon: 'week' };
+    }
+    if (horizonOverride === 'backlog') {
+      return { targetAt: 0, label: 'Backlog (No Alarm)', isHold: false, recur: 'none', horizon: 'backlog' };
+    }
 
     const minM = s.match(/\b(?:in|wait|for|after)\s+(\d{1,3})\s*(?:m|min|mins|minute|minutes)\b/);
     if (minM) {
       const m = Number(minM[1]);
-      return { targetAt: now + m * 60000, label: `In ${m}m`, isHold: true, recur: 'none' };
+      return { targetAt: now + m * 60000, label: `In ${m}m`, isHold: true, recur: 'none', horizon: 'today' };
     }
     const hrM = s.match(/\b(?:in|wait|for|after)\s+(\d{1,3})\s*(?:h|hr|hrs|hour|hours)\b/);
     if (hrM) {
       const h = Number(hrM[1]);
-      return { targetAt: now + h * 3600000, label: `In ${h}h`, isHold: true, recur: 'none' };
+      return { targetAt: now + h * 3600000, label: `In ${h}h`, isHold: true, recur: 'none', horizon: h <= 12 ? 'today' : 'tomorrow' };
     }
     const dayM = s.match(/\b(?:in|wait|for|after|shipping|delivery|takes?)\s+(\d{1,3})\s*(?:d|day|days)\b/);
     if (dayM) {
       const d = Number(dayM[1]);
-      return { targetAt: now + d * 86400000, label: `${d}d Timer`, isHold: true, recur: 'none' };
+      return { targetAt: now + d * 86400000, label: `${d}d Timer`, isHold: true, recur: 'none', horizon: d <= 1 ? 'tomorrow' : 'week' };
+    }
+    if (/\b(today)\b/.test(s)) {
+      const t = new Date(now);
+      t.setHours(18, 0, 0, 0);
+      if (t.getTime() <= now) t.setTime(now + 2 * 3600000);
+      return { targetAt: t.getTime(), label: 'Today', isHold: false, recur: 'none', horizon: 'today' };
     }
     if (/\b(tonight|this evening)\b/.test(s)) {
       const t = new Date();
       t.setHours(20, 0, 0, 0);
       if (t.getTime() <= now) t.setTime(now + 2 * 3600000);
-      return { targetAt: t.getTime(), label: 'Tonight 20:00', isHold: false, recur: 'none' };
+      return { targetAt: t.getTime(), label: 'Tonight 20:00', isHold: false, recur: 'none', horizon: 'today' };
     }
     if (/\b(tomorrow)\b/.test(s)) {
       const t = new Date(now + 86400000);
@@ -1030,56 +1157,98 @@
       } else {
         t.setHours(10, 0, 0, 0);
       }
-      return { targetAt: t.getTime(), label: 'Tomorrow', isHold: false, recur: 'none' };
+      return { targetAt: t.getTime(), label: 'Tomorrow', isHold: false, recur: 'none', horizon: 'tomorrow' };
     }
-    if (/\b(next week)\b/.test(s)) {
-      return { targetAt: now + 7 * 86400000, label: 'In 7d', isHold: true, recur: 'none' };
+    if (/\b(next week|this week)\b/.test(s)) {
+      return { targetAt: now + 5 * 86400000, label: 'This Week', isHold: true, recur: 'none', horizon: 'week' };
     }
-    // Smart cluster defaults: Ideas & Want-To-Do stay Parked (no noisy alarm) unless an explicit countdown above was given
     if (clusterId === 'ideas' || clusterId === 'want_to_do') {
-      return { targetAt: 0, label: 'Parked (No Alarm)', isHold: false, recur: 'none' };
+      return { targetAt: 0, label: 'Backlog (No Alarm)', isHold: false, recur: 'none', horizon: 'backlog' };
     }
     if (/\b(every day|daily)\b/.test(s)) {
-      return { targetAt: now + 86400000, label: 'Daily', isHold: false, recur: 'daily' };
+      return { targetAt: now + 86400000, label: 'Daily', isHold: false, recur: 'daily', horizon: 'today' };
     }
     if (/\b(every week|weekly)\b/.test(s)) {
-      return { targetAt: now + 7 * 86400000, label: 'Weekly', isHold: false, recur: 'weekly' };
+      return { targetAt: now + 7 * 86400000, label: 'Weekly', isHold: false, recur: 'weekly', horizon: 'week' };
     }
     if (clusterId === 'verify') {
-      return { targetAt: now + 24 * 3600000, label: '24h Verify Wait', isHold: true, recur: 'none' };
+      return { targetAt: now + 24 * 3600000, label: '24h Verify Wait', isHold: true, recur: 'none', horizon: 'tomorrow' };
     }
     if (clusterId === 'shipping') {
-      return { targetAt: now + 5 * 86400000, label: '5d Shipping Timer', isHold: true, recur: 'none' };
+      return { targetAt: now + 5 * 86400000, label: '5d Shipping Timer', isHold: true, recur: 'none', horizon: 'week' };
     }
     if (clusterId === 'payments') {
       const days = amount >= 15000 ? 10 : amount >= 5000 ? 7 : amount >= 1000 ? 4 : 2;
-      return { targetAt: now + days * 86400000, label: `${days}d Payment Hold`, isHold: true, recur: 'none' };
+      return { targetAt: now + days * 86400000, label: `${days}d Payment Hold`, isHold: true, recur: 'none', horizon: 'week' };
     }
     if (clusterId === 'family') {
       const t = new Date();
       t.setHours(20, 0, 0, 0);
       if (t.getTime() <= now) t.setTime(now + 12 * 3600000);
-      return { targetAt: t.getTime(), label: 'Evening 20:00', isHold: false, recur: 'none' };
+      return { targetAt: t.getTime(), label: 'Evening 20:00', isHold: false, recur: 'none', horizon: 'today' };
     }
-    return { targetAt: now + 24 * 3600000, label: '+24h Follow-Up', isHold: false, recur: 'none' };
+    return { targetAt: now + 24 * 3600000, label: '+24h Follow-Up', isHold: false, recur: 'none', horizon: 'today' };
   }
 
-  function resolveTimingFromChoice(choice, text, clusterId, amount) {
+  function resolveTimingFromChoice(choice, text, clusterId, amount, horizonOverride = '') {
     const now = Date.now();
-    if (choice === 'park') return { targetAt: 0, label: 'Parked (No Alarm)', isHold: false };
-    if (choice === '3h') return { targetAt: now + 3 * 3600000, label: 'In 3h', isHold: true };
+    if (choice === 'park') return { targetAt: 0, label: 'Backlog (No Alarm)', isHold: false, horizon: 'backlog' };
+    if (choice === 'today') {
+      const t = new Date(now);
+      t.setHours(18, 0, 0, 0);
+      if (t.getTime() <= now) t.setTime(now + 2 * 3600000);
+      return { targetAt: t.getTime(), label: 'Today 18:00', isHold: false, horizon: 'today' };
+    }
+    if (choice === '3h') return { targetAt: now + 3 * 3600000, label: 'In 3h', isHold: true, horizon: 'today' };
     if (choice === 'tonight') {
       const t = new Date();
       t.setHours(20, 30, 0, 0);
       if (t.getTime() <= now) t.setTime(now + 3 * 3600000);
-      return { targetAt: t.getTime(), label: 'Tonight 20:30', isHold: false };
+      return { targetAt: t.getTime(), label: 'Tonight 20:30', isHold: false, horizon: 'today' };
     }
-    if (choice === '1d') return { targetAt: now + 24 * 3600000, label: '+24h', isHold: true };
-    if (choice === '2d') return { targetAt: now + 2 * 86400000, label: '2d Wait', isHold: true };
-    if (choice === '4d') return { targetAt: now + 4 * 86400000, label: '4d Wait', isHold: true };
-    if (choice === '5d') return { targetAt: now + 5 * 86400000, label: '5d Shipping', isHold: true };
-    if (choice === '7d') return { targetAt: now + 7 * 86400000, label: '7d Wait', isHold: true };
-    return parseNaturalTiming(text, clusterId, amount);
+    if (choice === 'tomorrow') {
+      const t = new Date(now + 86400000);
+      t.setHours(10, 0, 0, 0);
+      return { targetAt: t.getTime(), label: 'Tomorrow 10:00', isHold: false, horizon: 'tomorrow' };
+    }
+    if (choice === '1d') return { targetAt: now + 24 * 3600000, label: '+24h', isHold: true, horizon: 'tomorrow' };
+    if (choice === '2d') return { targetAt: now + 2 * 86400000, label: '2d Wait', isHold: true, horizon: 'week' };
+    if (choice === '4d') return { targetAt: now + 4 * 86400000, label: '4d Wait', isHold: true, horizon: 'week' };
+    if (choice === '5d') return { targetAt: now + 5 * 86400000, label: '5d Shipping', isHold: true, horizon: 'week' };
+    if (choice === '7d') return { targetAt: now + 7 * 86400000, label: '7d Wait', isHold: true, horizon: 'week' };
+    return parseNaturalTiming(text, clusterId, amount, horizonOverride);
+  }
+
+  function itemIsoDate(item) {
+    const t = Number(item?.matureAt || item?.dueAt || 0);
+    if (!t) return '';
+    const d = new Date(t);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
+
+  function getEffectiveHorizon(item, now = Date.now()) {
+    if (!item) return 'backlog';
+    const t = Number(item.matureAt || item.dueAt || 0);
+    if ((t > 0 && now >= t) || item.delegationStatus === 'done') return 'today';
+    if (item.horizon === 'today' || item.horizon === 'tomorrow' || item.horizon === 'week' || item.horizon === 'backlog') {
+      return item.horizon;
+    }
+    if (item.priority === 'p1') return 'today';
+    if (t > 0) {
+      const iso = itemIsoDate(item);
+      const tIso = todayIso();
+      const tomIso = shiftIsoDate(tIso, 1);
+      if (iso <= tIso) return 'today';
+      if (iso === tomIso) return 'tomorrow';
+      return 'week';
+    }
+    if (item.category === 'ideas' || item.category === 'want_to_do' || item.kind === 'parked') {
+      return 'backlog';
+    }
+    return 'today';
   }
 
   function formatCountdown(targetAt, now = Date.now()) {
@@ -2884,11 +3053,13 @@
 
     const ctx = extractSmartContext(rawText);
     const cluster = detectCluster(rawText, state.draft.clusterOverride);
+    const horizonHint = state.draft.horizon && state.draft.horizon !== 'auto' ? state.draft.horizon : '';
     const timing = resolveTimingFromChoice(
       state.draft.waitChoice,
       rawText,
       cluster.id,
-      ctx.amount
+      ctx.amount,
+      horizonHint
     );
 
     const assigneeName = state.draft.assigneeName || ctx.assigneeName || '';
@@ -2897,16 +3068,22 @@
     const buMeta = BHFIRMS_BUS.find((b) => b.id === buId);
     const subTag =
       state.draft.customGroup ||
-      (assigneeName ? `👤 ${assigneeName}` : '') ||
+      (assigneeName ? `${assigneeName}` : '') ||
       ctx.appTag ||
       ctx.buTag ||
       (buMeta ? buMeta.short : '');
 
-    // Clean @Person prefix from display title if desired while keeping it readable
     const cleanTitle = rawText.replace(/^@[A-Za-z0-9_]+\s*[:,-]?\s*/, '').trim() || rawText;
     const id = `rem_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
     const isDelegated = Boolean(assigneeName);
     const taskToken = isDelegated ? randomToken(12) : '';
+    const priority = state.draft.priority || ctx.priority || 'p3';
+    const effectiveHorizon =
+      horizonHint ||
+      timing.horizon ||
+      (cluster.id === 'ideas' || cluster.id === 'want_to_do' ? 'backlog' : 'today');
+    const checklist = parseChecklistStepsFromText(state.draft.checklistRaw || '');
+    const notes = String(state.draft.notes || '').trim();
 
     const newItem = {
       id,
@@ -2916,6 +3093,10 @@
       subTag,
       buId,
       amount: ctx.amount || 0,
+      priority,
+      horizon: effectiveHorizon,
+      notes,
+      checklist,
       kind: timing.targetAt === 0 ? 'parked' : timing.isHold ? 'wait' : 'task',
       recur: timing.recur || 'none',
       createdAt: Date.now(),
@@ -2932,7 +3113,6 @@
       staffUpdatedAt: ''
     };
 
-    // If new assignee name isn't in roster yet, add them automatically
     if (assigneeName && !state.teamRoster.some((m) => m.name.toLowerCase() === assigneeName.toLowerCase())) {
       state.teamRoster.push({
         id: `tm_${Date.now().toString(36)}`,
@@ -2947,11 +3127,15 @@
     state.draft = {
       text: '',
       waitChoice: 'auto',
+      horizon: 'auto',
+      priority: '',
       clusterOverride: '',
       customGroup: '',
       assigneeId: '',
       assigneeName: '',
       assigneeBu: '',
+      notes: '',
+      checklistRaw: '',
       recur: 'none'
     };
     const inp = document.getElementById('capture-input');
@@ -2970,10 +3154,168 @@
     } else {
       showToast(
         isDelegated
-          ? `Assigned to 👤 ${assigneeName} (${cluster.shortLabel})`
-          : `Added to ${cluster.icon} ${cluster.shortLabel}`
+          ? `Assigned to ${assigneeName} (${cluster.shortLabel})`
+          : `Added to ${cluster.shortLabel}`
       );
     }
+  }
+
+  async function addQuickInlineTask(opts = {}) {
+    const rawText = String(opts.title || '').trim();
+    if (!rawText) {
+      showToast('Enter a task title first');
+      return null;
+    }
+    const ctx = extractSmartContext(rawText);
+    const cluster = detectCluster(rawText, opts.clusterId || '');
+    const horizonHint = opts.horizon || '';
+    const waitChoice = opts.waitChoice || 'auto';
+    const timing = resolveTimingFromChoice(waitChoice, rawText, cluster.id, ctx.amount, horizonHint);
+
+    let assigneeName = opts.assigneeName || ctx.assigneeName || '';
+    let assigneeId = opts.assigneeId || ctx.assigneeId || '';
+    let buId = opts.buId || ctx.buId || '';
+    if (assigneeId && !assigneeName) {
+      const m = state.teamRoster.find((x) => x.id === assigneeId);
+      if (m) {
+        assigneeName = m.name;
+        if (!buId) buId = m.bu || '';
+      }
+    } else if (assigneeName && !assigneeId) {
+      const m = state.teamRoster.find((x) => x.name.toLowerCase() === assigneeName.toLowerCase());
+      if (m) {
+        assigneeId = m.id;
+        assigneeName = m.name;
+        if (!buId) buId = m.bu || '';
+      }
+    }
+
+    const buMeta = BHFIRMS_BUS.find((b) => b.id === buId);
+    const subTag =
+      (assigneeName ? `${assigneeName}` : '') ||
+      ctx.appTag ||
+      ctx.buTag ||
+      (buMeta ? buMeta.short : '');
+
+    const cleanTitle = rawText.replace(/^@[A-Za-z0-9_]+\s*[:,-]?\s*/, '').trim() || rawText;
+    const id = `rem_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+    const isDelegated = Boolean(assigneeName) || Boolean(opts.forceDelegated);
+    const taskToken = isDelegated ? randomToken(12) : '';
+    const priority = opts.priority || ctx.priority || 'p3';
+    const effectiveHorizon =
+      horizonHint ||
+      timing.horizon ||
+      (cluster.id === 'ideas' || cluster.id === 'want_to_do' ? 'backlog' : 'today');
+    const checklist = parseChecklistStepsFromText(opts.checklistRaw || '');
+    const notes = String(opts.notes || '').trim();
+
+    const newItem = {
+      id,
+      title: cleanTitle,
+      category: isDelegated && !opts.clusterId ? 'people' : cluster.id,
+      customGroup: '',
+      subTag,
+      buId,
+      amount: ctx.amount || 0,
+      priority,
+      horizon: effectiveHorizon,
+      notes,
+      checklist,
+      kind: timing.targetAt === 0 ? 'parked' : timing.isHold ? 'wait' : 'task',
+      recur: timing.recur || 'none',
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      dueAt: timing.targetAt || 0,
+      matureAt: timing.isHold ? timing.targetAt : 0,
+      completed: false,
+      isDelegated,
+      assigneeId,
+      assigneeName,
+      delegationStatus: isDelegated ? 'assigned' : '',
+      taskToken,
+      staffNote: '',
+      staffUpdatedAt: ''
+    };
+
+    if (assigneeName && !state.teamRoster.some((m) => m.name.toLowerCase() === assigneeName.toLowerCase())) {
+      state.teamRoster.push({
+        id: `tm_${Date.now().toString(36)}`,
+        name: assigneeName,
+        role: opts.assigneeRole || 'Team Member',
+        bu: buId || 'holding',
+        phone: opts.assigneePhone || ''
+      });
+    }
+
+    state.reminders.unshift(newItem);
+    saveLocalState();
+    renderAll();
+
+    if (newItem.matureAt || newItem.dueAt) {
+      scheduleCloudTimerPush(newItem).catch(() => {});
+    }
+    syncAll(newItem).catch(() => {});
+
+    if (opts.sendWhatsApp && isDelegated) {
+      dispatchWhatsAppDelegation(newItem.id);
+    } else {
+      showToast(
+        isDelegated
+          ? `Assigned to ${assigneeName}`
+          : `Planned in ${cluster.shortLabel}`
+      );
+    }
+    return newItem;
+  }
+
+  function autoPlanTodayHorizon() {
+    const now = Date.now();
+    const tIso = todayIso();
+    let promoted = 0;
+    for (const r of state.reminders) {
+      if (!r || r.completed || r.deleted) continue;
+      if (r.category === 'ideas' || r.category === 'want_to_do') continue;
+      const targetAt = Number(r.matureAt || r.dueAt || 0);
+      const isReady = (targetAt > 0 && now >= targetAt) || r.delegationStatus === 'done';
+      const isDueToday = targetAt > 0 && itemIsoDate(r) === tIso;
+      const isHighPri = r.priority === 'p1' || r.priority === 'p2';
+      if ((isReady || isDueToday || isHighPri) && r.horizon !== 'today') {
+        r.horizon = 'today';
+        r.updatedAt = now;
+        promoted++;
+      }
+    }
+    // If still fewer than 3 items in Today's focus, promote top active work/verify/people items
+    const todayCount = state.reminders.filter(
+      (r) => !r.completed && !r.deleted && getEffectiveHorizon(r, now) === 'today'
+    ).length;
+    if (todayCount < 3) {
+      for (const r of state.reminders) {
+        if (!r || r.completed || r.deleted) continue;
+        if (r.category === 'ideas' || r.category === 'want_to_do') continue;
+        if (getEffectiveHorizon(r, now) !== 'today') {
+          r.horizon = 'today';
+          if (!r.dueAt && !r.matureAt) {
+            const eod = new Date(now);
+            eod.setHours(18, 0, 0, 0);
+            if (eod.getTime() <= now) eod.setTime(now + 2 * 3600000);
+            r.dueAt = eod.getTime();
+          }
+          r.updatedAt = now;
+          promoted++;
+          if (todayCount + promoted >= 4) break;
+        }
+      }
+    }
+    saveLocalState();
+    state.planningMode = 'horizon';
+    renderAll();
+    syncAll().catch(() => {});
+    showToast(
+      promoted > 0
+        ? `⚡ Auto-Planned ${promoted} priority/ready item${promoted === 1 ? '' : 's'} into Today's Focus`
+        : `✓ Today's Focus is already aligned with your top priorities`
+    );
   }
 
   function getDelegationMagicUrl(item) {
@@ -3004,6 +3346,7 @@
     );
     const phone = (member?.phone || '').replace(/[^0-9]/g, '');
     const buMeta = BHFIRMS_BUS.find((b) => b.id === (item.buId || member?.bu));
+    const priMeta = PRIORITY_LEVELS.find((p) => p.id === item.priority);
     const targetStr =
       item.dueAt || item.matureAt
         ? new Date(item.dueAt || item.matureAt).toLocaleString([], {
@@ -3013,12 +3356,83 @@
             hour: '2-digit',
             minute: '2-digit'
           })
-        : 'As soon as possible';
+        : 'Today / As soon as possible';
+
+    const stepsBlock =
+      Array.isArray(item.checklist) && item.checklist.length > 0
+        ? `\n\n*Deliverable Steps:*\n${item.checklist
+            .map((s, i) => `${s.done ? '☑' : '☐'} ${i + 1}. ${s.text}`)
+            .join('\n')}`
+        : '';
+    const notesBlock = item.notes ? `\n• *Instructions:* ${item.notes}` : '';
+    const priBlock =
+      item.priority === 'p1' || item.priority === 'p2'
+        ? `\n• *Priority:* ${priMeta ? priMeta.label : item.priority.toUpperCase()}`
+        : '';
 
     const link = getDelegationMagicUrl(item);
     const msg = isNudge
-      ? `🔔 *Follow-Up — Hussein Bdeir (BHFIRMS)*\nHi ${item.assigneeName || 'team'}, please update the status on:\n• *${item.title}*\n\n👇 *Tap to mark Seen / Working / Done:*\n${link}`
-      : `📋 *Task from Hussein Bdeir (BHFIRMS)*\n• *Task:* ${item.title}${buMeta ? `\n• *Unit:* ${buMeta.short}` : ''}\n• *Target:* ${targetStr}\n\n👇 *Tap to update live status (Seen / Working / Done):*\n${link}`;
+      ? `🔔 *Follow-Up — Hussein Bdeir (BHFIRMS)*\nHi ${item.assigneeName || 'team'}, please update the live status on:\n• *${item.title}*${stepsBlock}\n\n👇 *Tap to mark Seen / Working / Done:*\n${link}`
+      : `📋 *Task Assignment — Hussein Bdeir (BHFIRMS)*\n• *Task:* ${item.title}${buMeta ? `\n• *Unit:* ${buMeta.short}` : ''}${priBlock}\n• *Target:* ${targetStr}${notesBlock}${stepsBlock}\n\n👇 *Tap to update live status (Seen / Working / Done):*\n${link}`;
+
+    const waUrl = phone
+      ? `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`
+      : `https://wa.me/?text=${encodeURIComponent(msg)}`;
+    window.open(waUrl, '_blank', 'noopener');
+  }
+
+  function dispatchPersonDigestWhatsApp(personName) {
+    const cleanPerson = String(personName || '').trim();
+    if (!cleanPerson) return;
+    const member = state.teamRoster.find(
+      (m) => m.name.toLowerCase() === cleanPerson.toLowerCase() || m.id === cleanPerson
+    );
+    const targetName = member ? member.name : cleanPerson;
+    const items = state.reminders.filter(
+      (r) =>
+        !r.completed &&
+        !r.deleted &&
+        isDelegatedItem(r) &&
+        String(r.assigneeName || '').toLowerCase() === targetName.toLowerCase()
+    );
+    if (!items.length) {
+      showToast(`No active tasks assigned to ${targetName}`);
+      return;
+    }
+
+    const now = Date.now();
+    for (const it of items) {
+      if (!it.taskToken) it.taskToken = randomToken(12);
+      if (!it.delegationStatus || it.delegationStatus === 'assigned') {
+        it.delegationStatus = 'sent';
+      }
+      it.ownerStatusAt = now;
+      it.updatedAt = now;
+    }
+    saveLocalState();
+    renderAll();
+    syncAll(items[0]).catch(() => {});
+
+    const phone = (member?.phone || '').replace(/[^0-9]/g, '');
+    const lines = items.map((it, idx) => {
+      const link = getDelegationMagicUrl(it);
+      const stLabel =
+        it.delegationStatus === 'done'
+          ? '✅ Done (Pending Verify)'
+          : it.delegationStatus === 'working'
+            ? '⚙️ Working'
+            : it.delegationStatus === 'seen'
+              ? '👀 Seen'
+              : '📨 Open';
+      const priTag = it.priority === 'p1' ? ' [P1 URGENT]' : it.priority === 'p2' ? ' [P2 HIGH]' : '';
+      return `*${idx + 1}. ${it.title}*${priTag} (${stLabel})\n   ↳ Status Link: ${link}`;
+    });
+
+    const msg =
+      `📋 *BHFIRMS Active Task Digest — ${targetName}*\n` +
+      `Hi ${targetName}, here are your *${items.length}* active item${items.length === 1 ? '' : 's'} with Hussein Bdeir:\n\n` +
+      lines.join('\n\n') +
+      `\n\n👇 *Tap each link as you start (Working) or finish (Completed).*`;
 
     const waUrl = phone
       ? `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`
@@ -3213,6 +3627,10 @@
             assigneeName: rem.assigneeName || '',
             assigneeBu: rem.buId || '',
             subTag: rem.subTag || '',
+            priority: rem.priority || 'p3',
+            horizon: rem.horizon || 'today',
+            notes: rem.notes || '',
+            checklist: Array.isArray(rem.checklist) ? rem.checklist : [],
             dueAt: rem.dueAt || rem.matureAt || 0,
             delegationStatus: rem.delegationStatus || existing.delegationStatus || 'sent',
             staffNote: rem.staffNote || existing.staffNote || '',
@@ -3260,11 +3678,10 @@
   }
 
   /* ============================================================================
-     RENDERING: TOP 52PX HUD RIBBON + LIVE ADVISOR + 5 ZERO-SCROLL VIEWS
+     RENDERING: TOP HUD RIBBON + LIVE ADVISOR + 5 ARCHITECTURAL VIEWS
      ============================================================================ */
   function renderPrayerHudPill() {
     const btn = document.getElementById('btn-prayer-hud');
-    const iconEl = document.getElementById('prayer-hud-icon');
     const nameEl = document.getElementById('prayer-hud-name');
     const timeEl = document.getElementById('prayer-hud-time');
     const cdEl = document.getElementById('prayer-hud-cd');
@@ -3278,7 +3695,6 @@
     if (nxt) {
       const cd = formatCountdown(nxt.epochMs, now);
       const isImminent = Boolean(status.justEntered) || (nxt.epochMs - now <= 20 * 60000 && nxt.epochMs >= now);
-      if (iconEl) iconEl.textContent = nxt.icon || '🕌';
       nameEl.textContent = nxt.label;
       timeEl.textContent = nxt.time24;
       if (cdEl) cdEl.textContent = `in ${cd}`;
@@ -3288,7 +3704,7 @@
         dockPrayerBadge.className = `dock-pill ${isImminent ? 'emerald' : 'steel'} tabular`;
       }
       btn.classList.toggle('imminent', isImminent);
-      btn.title = `🕌 Shia Prayer Times (${today.locationName} · Day #${today.dayOfYear})\n🌅 Fajr: ${today.fajr.time24}  |  ☀️ Dohor: ${today.dhuhr.time24}  |  🌙 Maghrib: ${today.maghrib.time24}\nNext: ${nxt.label} (${nxt.arabic}) at ${nxt.time24} (in ${cd})\nTap to open Prayer Times tab`;
+      btn.title = `Shia Prayer Times (${today.locationName} · Day #${today.dayOfYear})\nFajr: ${today.fajr.time24}  |  Dohor: ${today.dhuhr.time24}  |  Maghrib: ${today.maghrib.time24}\nNext: ${nxt.label} (${nxt.arabic}) at ${nxt.time24} (in ${cd})\nClick to open Prayer Times tab`;
     }
   }
 
@@ -3298,6 +3714,7 @@
     const scoreValEl = document.getElementById('hud-score-val');
     const scoreDeltaEl = document.getElementById('hud-score-delta');
     const dockScoreEl = document.getElementById('dock-badge-score');
+    const topScoreEl = document.getElementById('top-badge-score');
 
     if (scoreValEl) {
       scoreValEl.textContent = `${todaySc.total}%`;
@@ -3315,15 +3732,21 @@
     if (dockScoreEl) {
       dockScoreEl.textContent = `${todaySc.total}%`;
     }
+    if (topScoreEl) {
+      topScoreEl.textContent = `${todaySc.total}%`;
+    }
   }
 
   function renderLiveAdvisorDrawer() {
     const drawer = document.getElementById('live-advisor-drawer');
     const delBtn = document.getElementById('btn-pick-assignee');
-    const delIcon = document.getElementById('capture-assignee-icon');
     const delLbl = document.getElementById('capture-assignee-label');
     const delClearBtn = document.getElementById('btn-clear-assignee');
     const submitBtn = document.getElementById('capture-submit-btn');
+    const horBtn = document.getElementById('btn-draft-horizon');
+    const horLbl = document.getElementById('capture-horizon-label');
+    const priBtn = document.getElementById('btn-draft-priority');
+    const priLbl = document.getElementById('capture-priority-label');
     if (!drawer) return;
 
     const text = state.draft.text.trim();
@@ -3333,21 +3756,40 @@
     if (delBtn && delLbl) {
       if (activeAssignee) {
         delBtn.classList.add('active');
-        if (delIcon) delIcon.textContent = '👤';
         delLbl.textContent = activeAssignee;
         if (delClearBtn) delClearBtn.hidden = false;
       } else {
         delBtn.classList.remove('active');
-        if (delIcon) delIcon.textContent = '👥';
         delLbl.textContent = 'Delegate';
         if (delClearBtn) delClearBtn.hidden = true;
       }
     }
-    if (submitBtn) {
-      submitBtn.textContent = activeAssignee ? '+ Assign' : '+ Add';
+
+    const curHor = state.draft.horizon || 'auto';
+    if (horBtn && horLbl) {
+      const hMap = { auto: 'Horizon', today: 'Today', tomorrow: 'Tomorrow', week: 'This Week', backlog: 'Backlog' };
+      horLbl.textContent = hMap[curHor] || 'Horizon';
+      horBtn.classList.toggle('active', curHor !== 'auto');
     }
 
-    if (!text && !state.draft.assigneeName && !state.draft.clusterOverride) {
+    const curPri = state.draft.priority || '';
+    if (priBtn && priLbl) {
+      priLbl.textContent = curPri ? curPri.toUpperCase() : 'P-Level';
+      priBtn.classList.toggle('active', Boolean(curPri));
+      priBtn.classList.toggle('p1', curPri === 'p1');
+    }
+
+    if (submitBtn) {
+      submitBtn.textContent = activeAssignee ? '+ Assign' : '+ Plan';
+    }
+
+    if (
+      !text &&
+      !state.draft.assigneeName &&
+      !state.draft.clusterOverride &&
+      curHor === 'auto' &&
+      !curPri
+    ) {
       drawer.hidden = true;
       drawer.innerHTML = '';
       return;
@@ -3355,16 +3797,27 @@
 
     drawer.hidden = false;
     const cluster = detectCluster(text, state.draft.clusterOverride);
+    const horizonHint = curHor !== 'auto' ? curHor : '';
     const timing = resolveTimingFromChoice(
       state.draft.waitChoice,
       text,
       cluster.id,
-      ctx.amount
+      ctx.amount,
+      horizonHint
     );
+    const effectivePri = curPri || ctx.priority || 'p3';
+
+    const horizonChips = [
+      { k: 'auto', lbl: 'Auto Horizon' },
+      { k: 'today', lbl: 'Today Focus' },
+      { k: 'tomorrow', lbl: 'Tomorrow' },
+      { k: 'week', lbl: 'This Week' },
+      { k: 'backlog', lbl: 'Backlog' }
+    ];
 
     const timeChips = [
-      { k: 'auto', lbl: `✨ Auto (${timing.label})` },
-      { k: 'park', lbl: '📌 Park (No Timer)' },
+      { k: 'auto', lbl: `Auto (${timing.label})` },
+      { k: 'park', lbl: 'No Timer' },
       { k: '3h', lbl: 'In 3h' },
       { k: 'tonight', lbl: 'Tonight 20:30' },
       { k: '1d', lbl: '+24h' },
@@ -3377,25 +3830,48 @@
       <div class="advisor-top-row">
         <div class="advisor-detected-badges">
           <span class="t-pill" style="border-color:var(--brass);color:var(--brass-bright)">
-            ${cluster.icon} ${esc(cluster.label)}
+            ${esc(cluster.label)}
+          </span>
+          <span class="t-pill ${effectivePri === 'p1' ? 'p1' : effectivePri === 'p2' ? 'p2' : ''}">
+            ${effectivePri.toUpperCase()}
           </span>
           ${
             activeAssignee
-              ? `<span class="t-pill person">👤 Delegate: ${esc(activeAssignee)}</span>`
+              ? `<span class="t-pill person">Assignee: ${esc(activeAssignee)}</span>`
               : ''
           }
           ${ctx.buTag ? `<span class="t-pill">${esc(ctx.buTag)}</span>` : ''}
           ${ctx.appTag ? `<span class="t-pill timer">${esc(ctx.appTag)}</span>` : ''}
           ${ctx.amount > 0 ? `<span class="t-pill amt">$${fmtInt(ctx.amount)}</span>` : ''}
           <span class="t-pill ${timing.targetAt ? 'timer' : ''}">
-            ⏳ ${esc(timing.label)}
+            ${esc(timing.label)}
           </span>
         </div>
         ${
           activeAssignee
-            ? `<button type="button" class="mini-chip wa-btn" id="btn-add-and-whatsapp">📲 Add &amp; Send WhatsApp</button>`
+            ? `<button type="button" class="mini-chip wa-btn" id="btn-add-and-whatsapp">📲 Assign &amp; WhatsApp</button>`
             : ''
         }
+      </div>
+
+      <div class="advisor-chip-strip">
+        ${horizonChips
+          .map(
+            (h) => `
+          <button type="button" class="mini-chip ${curHor === h.k ? 'active' : ''}" data-horizon-chip="${h.k}">
+            ${esc(h.lbl)}
+          </button>
+        `
+          )
+          .join('')}
+        <span style="width:1px;height:14px;background:var(--border-subtle);margin:0 2px"></span>
+        ${PRIORITY_LEVELS.map(
+          (p) => `
+          <button type="button" class="mini-chip ${effectivePri === p.id ? 'active' : ''}" data-priority-chip="${p.id}">
+            ${esc(p.label)}
+          </button>
+        `
+        ).join('')}
       </div>
 
       <div class="advisor-chip-strip">
@@ -3411,33 +3887,66 @@
       </div>
 
       <div class="advisor-chip-strip">
-        <button type="button" class="mini-chip ${!state.draft.clusterOverride ? 'active' : ''}" data-cluster-chip="">✨ Auto Cluster</button>
+        <button type="button" class="mini-chip ${!state.draft.clusterOverride ? 'active' : ''}" data-cluster-chip="">Auto Cluster</button>
         ${CLUSTERS.map(
           (c) => `
           <button type="button" class="mini-chip ${state.draft.clusterOverride === c.id ? 'active' : ''}" data-cluster-chip="${c.id}">
-            ${c.icon} ${esc(c.shortLabel)}
+            ${esc(c.shortLabel)}
           </button>
         `
         ).join('')}
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;padding-top:2px">
+        <input
+          type="text"
+          id="draft-steps-input"
+          value="${esc(state.draft.checklistRaw || '')}"
+          placeholder="Sub-steps (optional, separate with | or ; e.g. Verify amount | Save receipt)"
+          style="padding:6px 9px;border-radius:6px;background:var(--bg-card);border:1px solid var(--border-subtle);font-size:11.5px;color:var(--text-primary)"
+        >
+        <input
+          type="text"
+          id="draft-notes-input"
+          value="${esc(state.draft.notes || '')}"
+          placeholder="Instructions or context note (optional)…"
+          style="padding:6px 9px;border-radius:6px;background:var(--bg-card);border:1px solid var(--border-subtle);font-size:11.5px;color:var(--text-primary)"
+        >
       </div>
     `;
   }
 
   /* ============================================================================
-     COMPACT 44PX SINGLE-LINE TICKER ROW RENDERER
+     EXECUTIVE TICKER ROW RENDERER (WITH CHECKLIST, PRIORITY & DELEGATION OVERRIDE)
      ============================================================================ */
   function renderTickerRowHtml(item, now = Date.now()) {
     const cluster = CLUSTERS.find((c) => c.id === item.category) || CLUSTERS[3];
     const targetAt = Number(item.matureAt || item.dueAt || 0);
-    const isHold = Boolean(item.matureAt || item.kind === 'wait' || cluster.id === 'verify' || cluster.id === 'shipping' || cluster.id === 'payments');
+    const isHold = Boolean(
+      item.matureAt ||
+        item.kind === 'wait' ||
+        cluster.id === 'verify' ||
+        cluster.id === 'shipping' ||
+        cluster.id === 'payments'
+    );
     const isMatured = !item.completed && targetAt > 0 && now >= targetAt && isHold;
     const isOverdue = !item.completed && targetAt > 0 && now >= targetAt && !isHold;
     const isHolding = !item.completed && targetAt > now && isHold;
     const isExpanded = state.expandedRowId === item.id;
+    const pri = item.priority || 'p3';
 
     const rowCls = [
       'ticker-row-card',
-      item.completed ? 'completed' : isMatured ? 'matured' : isOverdue ? 'overdue' : isHolding ? 'holding' : '',
+      item.completed
+        ? 'completed'
+        : isMatured
+          ? 'matured'
+          : isOverdue
+            ? 'overdue'
+            : isHolding
+              ? 'holding'
+              : '',
+      !item.completed && pri === 'p1' ? 'priority-p1' : !item.completed && pri === 'p2' ? 'priority-p2' : '',
       isExpanded ? 'expanded' : ''
     ]
       .filter(Boolean)
@@ -3446,18 +3955,40 @@
     const countdown = formatCountdown(targetAt, now);
     let progressPct = 0;
     if (isHold && !item.completed && item.createdAt && targetAt > item.createdAt) {
-      progressPct = Math.max(4, Math.min(100, Math.round(((now - item.createdAt) / (targetAt - item.createdAt)) * 100)));
+      progressPct = Math.max(
+        4,
+        Math.min(100, Math.round(((now - item.createdAt) / (targetAt - item.createdAt)) * 100))
+      );
     }
+
+    const steps = Array.isArray(item.checklist) ? item.checklist : [];
+    const doneSteps = steps.filter((s) => s.done).length;
+    const stepsBadge =
+      steps.length > 0
+        ? `<span class="t-pill steps tabular" title="Deliverable steps">${doneSteps}/${steps.length} steps</span>`
+        : '';
+
+    const priBadge =
+      pri === 'p1'
+        ? `<span class="t-pill p1">P1</span>`
+        : pri === 'p2'
+          ? `<span class="t-pill p2">P2</span>`
+          : '';
+
+    const buMeta = BHFIRMS_BUS.find((b) => b.id === item.buId);
+    const buBadge = buMeta ? `<span class="t-pill">${esc(buMeta.short)}</span>` : '';
 
     let delBadge = '';
     if (item.isDelegated) {
       const st = item.delegationStatus || 'assigned';
       const stMap = {
-        assigned: { lbl: `👤 ${item.assigneeName || 'Team'}`, cls: 'person' },
-        sent: { lbl: `📨 ${item.assigneeName} · Sent`, cls: 'person' },
-        seen: { lbl: `👀 ${item.assigneeName} · Seen`, cls: 'person' },
-        working: { lbl: `⚙️ ${item.assigneeName} · Working`, cls: 'timer' },
-        done: { lbl: `✅ ${item.assigneeName} · Done (Verify)`, cls: 'matured' }
+        assigned: { lbl: `${item.assigneeName || 'Team'} · Assigned`, cls: 'person' },
+        sent: { lbl: `${item.assigneeName} · Dispatched`, cls: 'person' },
+        seen: { lbl: `${item.assigneeName} · Seen`, cls: 'person' },
+        working: { lbl: `${item.assigneeName} · Working`, cls: 'timer' },
+        blocked: { lbl: `${item.assigneeName} · Blocked`, cls: 'p1' },
+        done: { lbl: `${item.assigneeName} · Verify`, cls: 'matured' },
+        verified: { lbl: `${item.assigneeName} · Verified`, cls: 'matured' }
       };
       const meta = stMap[st] || stMap.assigned;
       delBadge = `<span class="t-pill ${meta.cls}">${esc(meta.lbl)}</span>`;
@@ -3473,10 +4004,64 @@
           : cluster.id === 'shipping'
             ? '✓ Received'
             : cluster.id === 'people'
-              ? '✓ Spoke'
+              ? '✓ Completed'
               : cluster.id === 'payments'
                 ? '✓ Paid'
                 : '✓ Done';
+
+    const checklistDrawerHtml = `
+      <div class="checklist-drawer-box">
+        <div style="display:flex;align-items:center;justify-content:space-between;font-size:10.5px;font-weight:800;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.05em">
+          <span>Deliverable Checklist (${doneSteps}/${steps.length})</span>
+          <button type="button" class="mini-chip" data-act="open-workbench" data-id="${esc(item.id)}">✎ Full Task Workbench</button>
+        </div>
+        ${steps
+          .map(
+            (st) => `
+          <div class="checklist-step-row ${st.done ? 'done' : ''}" data-act="toggle-step" data-id="${esc(item.id)}" data-step-id="${esc(st.id)}" style="cursor:pointer">
+            <button type="button" class="checklist-step-check" data-act="toggle-step" data-id="${esc(item.id)}" data-step-id="${esc(st.id)}">${st.done ? '✓' : ''}</button>
+            <span style="flex:1">${esc(st.text)}</span>
+            <button type="button" class="mini-chip" data-act="delete-step" data-id="${esc(item.id)}" data-step-id="${esc(st.id)}" style="padding:1px 5px;font-size:10px" title="Remove step">✕</button>
+          </div>
+        `
+          )
+          .join('')}
+        <div style="display:flex;gap:5px;margin-top:3px">
+          <input
+            type="text"
+            class="bento-inline-input"
+            data-step-input-for="${esc(item.id)}"
+            placeholder="+ Add deliverable step or checkpoint…"
+          >
+          <button type="button" class="bento-inline-btn" data-act="add-step" data-id="${esc(item.id)}">+ Step</button>
+        </div>
+      </div>
+    `;
+
+    const delegationStageOverrideHtml = item.isDelegated
+      ? `
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;flex-wrap:wrap;padding:6px 8px;border-radius:6px;background:var(--bg-elevated);border:1px solid var(--border-subtle)">
+          <span style="font-size:10.5px;font-weight:800;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.05em">
+            Stage (${esc(item.assigneeName || 'Staff')}):
+          </span>
+          <div class="del-stage-stepper">
+            ${['assigned', 'sent', 'seen', 'working', 'done']
+              .map(
+                (stKey) => `
+              <button
+                type="button"
+                class="del-stage-pill ${(item.delegationStatus || 'assigned') === stKey ? `active-${stKey}` : ''}"
+                data-act="set-del-stage"
+                data-id="${esc(item.id)}"
+                data-stage="${stKey}"
+              >${stKey === 'assigned' ? 'Assigned' : stKey === 'sent' ? 'Sent' : stKey === 'seen' ? 'Seen' : stKey === 'working' ? 'Working' : 'Done'}</button>
+            `
+              )
+              .join('')}
+          </div>
+        </div>
+      `
+      : '';
 
     return `
       <div class="${rowCls}" data-row-id="${esc(item.id)}">
@@ -3490,12 +4075,15 @@
           >✓</button>
           <span class="ticker-title">${esc(item.title)}</span>
           <div class="ticker-pills">
+            ${priBadge}
+            ${stepsBadge}
+            ${buBadge}
             ${delBadge}
             ${item.amount > 0 ? `<span class="t-pill amt">$${fmtInt(item.amount)}</span>` : ''}
             ${
               targetAt > 0
                 ? `<span class="t-pill ${isMatured || item.delegationStatus === 'done' ? 'matured' : 'timer'} tabular">${
-                    isMatured ? '🔓 Ready' : `⏳ ${esc(countdown)}`
+                    isMatured ? 'Ready Now' : `${esc(countdown)}`
                   }</span>`
                 : ''
             }
@@ -3503,27 +4091,47 @@
         </div>
 
         ${
+          item.notes && !isExpanded
+            ? `<div style="padding:0 12px 5px 38px;font-size:11px;color:var(--text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">📋 ${esc(
+                item.notes
+              )}</div>`
+            : ''
+        }
+
+        ${
           item.staffNote
-            ? `<div style="padding:0 12px 6px 40px;font-size:11.5px;color:var(--emerald)">💬 <strong>${esc(
+            ? `<div style="padding:0 12px 6px 38px;font-size:11.5px;color:var(--emerald)">💬 <strong>${esc(
                 item.assigneeName || 'Staff'
               )}:</strong> ${esc(item.staffNote)}</div>`
             : ''
         }
 
         <div class="ticker-action-drawer" ${isExpanded ? '' : 'hidden'}>
+          ${
+            item.notes
+              ? `<div style="padding:7px 9px;border-radius:6px;background:var(--bg-card);border:1px solid var(--border-subtle);font-size:11.5px;color:var(--text-secondary)"><strong>Instructions / Notes:</strong> ${esc(
+                  item.notes
+                )}</div>`
+              : ''
+          }
+          ${delegationStageOverrideHtml}
+          ${checklistDrawerHtml}
           <div class="ticker-act-btns">
             ${
               !item.completed
                 ? `
               <button type="button" class="t-act-btn primary" data-act="toggle-done" data-id="${esc(item.id)}">${esc(doneVerb)}</button>
+              <button type="button" class="t-act-btn" data-act="open-workbench" data-id="${esc(item.id)}">✎ Edit / Plan</button>
               <button type="button" class="t-act-btn wa" data-act="whatsapp" data-id="${esc(item.id)}">
                 📲 ${item.isDelegated ? `WhatsApp ${esc(item.assigneeName)}` : 'Delegate / WhatsApp'}
               </button>
               ${
                 item.isDelegated
-                  ? `<button type="button" class="t-act-btn" data-act="copy-link" data-id="${esc(item.id)}">🔗 Copy Status Link</button>`
+                  ? `<button type="button" class="t-act-btn" data-act="copy-link" data-id="${esc(item.id)}">🔗 Copy Link</button>`
                   : ''
               }
+              <button type="button" class="t-act-btn" data-act="set-horizon" data-id="${esc(item.id)}" data-horizon="today">Today</button>
+              <button type="button" class="t-act-btn" data-act="set-horizon" data-id="${esc(item.id)}" data-horizon="tomorrow">Tomorrow</button>
               <button type="button" class="t-act-btn" data-act="snooze-1d" data-id="${esc(item.id)}">+24h</button>
               <button type="button" class="t-act-btn" data-act="snooze-3d" data-id="${esc(item.id)}">+3d</button>
               ${
@@ -3531,7 +4139,7 @@
                   ? `<button type="button" class="t-act-btn" data-act="release-now" data-id="${esc(item.id)}">Ready Now</button>`
                   : ''
               }
-              <button type="button" class="t-act-btn" data-act="move-cluster" data-id="${esc(item.id)}">🏷️ Cluster</button>
+              <button type="button" class="t-act-btn" data-act="move-cluster" data-id="${esc(item.id)}">Cluster</button>
             `
                 : `
               <button type="button" class="t-act-btn" data-act="toggle-done" data-id="${esc(item.id)}">↺ Reopen</button>
@@ -3553,46 +4161,319 @@
   }
 
   /* ============================================================================
-     TAB 1: PLANNING (2X4 ZERO-SCROLL BENTO RADAR + CLUSTER & SUB-TOPIC BOARD)
+     TAB 1: EXECUTIVE PLANNING (7-DAY STRIP + 2X4 MATRIX + HORIZON BOARD + BU BOARD)
      ============================================================================ */
+  function buildSevenDayHorizonStripHtml(activeItems, now = Date.now()) {
+    const baseIso = todayIso();
+    const cfg = normalizePrayerConfig(state.prayerConfig);
+    const selDate = state.selectedPlanDate || 'all';
+    const dayCells = [];
+
+    for (let i = 0; i < 7; i++) {
+      const iso = shiftIsoDate(baseIso, i);
+      const [yy, mm, dd] = iso.split('-').map(Number);
+      const dObj = new Date(yy, mm - 1, dd, 12, 0, 0);
+      const dayName =
+        i === 0
+          ? 'Today'
+          : i === 1
+            ? 'Tomorrow'
+            : dObj.toLocaleDateString('en-US', { weekday: 'short' });
+      const dateShort = dObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      const dayCount = activeItems.filter((r) => {
+        const rIso = itemIsoDate(r);
+        if (rIso === iso) return true;
+        if (i === 0 && !rIso && getEffectiveHorizon(r, now) === 'today') return true;
+        if (i === 1 && !rIso && r.horizon === 'tomorrow') return true;
+        return false;
+      }).length;
+      const sch = computeShiaPrayerTimesForDate(iso, cfg);
+
+      dayCells.push(`
+        <div class="horizon-day-cell ${selDate === iso ? 'active' : ''}" data-plan-date="${iso}" title="Filter tasks planned for ${dayName} (${dateShort})">
+          <div class="horizon-day-top">
+            <span class="horizon-day-name">${esc(dayName)} · ${esc(dateShort)}</span>
+            <span class="horizon-day-count ${dayCount > 0 ? 'has-items' : ''} tabular">${dayCount}</span>
+          </div>
+          <div class="horizon-day-meta tabular">
+            <span>Dohor ${esc(sch.dhuhr.time24)} · Maghrib ${esc(sch.maghrib.time24)}</span>
+          </div>
+        </div>
+      `);
+    }
+
+    return `
+      <div class="horizon-week-strip">
+        <div class="horizon-day-cell ${selDate === 'all' ? 'active' : ''}" data-plan-date="all" title="Show all active horizons">
+          <div class="horizon-day-top">
+            <span class="horizon-day-name">All Horizons</span>
+            <span class="horizon-day-count has-items tabular">${activeItems.length}</span>
+          </div>
+          <div class="horizon-day-meta">
+            <span>Full Executive Ledger</span>
+          </div>
+        </div>
+        ${dayCells.join('')}
+      </div>
+    `;
+  }
+
   function renderPlanningView() {
     const root = document.getElementById('view-planning');
     if (!root) return;
     const now = Date.now();
-    const active = state.reminders.filter((r) => !r.completed);
-    const completed = state.reminders.filter((r) => r.completed);
+    const allActive = state.reminders.filter((r) => !r.completed && !r.deleted);
+    const completed = state.reminders.filter((r) => r.completed && !r.deleted);
+
+    const selDate = state.selectedPlanDate || 'all';
+    const baseIso = todayIso();
+    const tomorrowIso = shiftIsoDate(baseIso, 1);
+    const active =
+      selDate === 'all'
+        ? allActive
+        : allActive.filter((r) => {
+            const rIso = itemIsoDate(r);
+            if (rIso === selDate) return true;
+            if (selDate === baseIso && !rIso && getEffectiveHorizon(r, now) === 'today') return true;
+            if (selDate === tomorrowIso && !rIso && r.horizon === 'tomorrow') return true;
+            return false;
+          });
+
     const isRadarMode = state.planningMode === 'radar';
     root.classList.toggle('is-radar-mode', isRadarMode);
 
-    // Urgent / Matured / Staff-Completed strip
-    const urgentItems = active.filter((r) => {
+    const urgentItems = allActive.filter((r) => {
       const t = Number(r.matureAt || r.dueAt || 0);
       return (t > 0 && now >= t) || r.delegationStatus === 'done';
     });
+
+    const todayFocusCount = allActive.filter((r) => getEffectiveHorizon(r, now) === 'today').length;
 
     const toolbarHtml = `
       <div class="planning-toolbar">
         <div class="planning-mode-seg" role="tablist" aria-label="Planning View Mode">
           <button type="button" class="planning-mode-btn ${state.planningMode === 'radar' ? 'active' : ''}" data-planning-mode="radar">
-            🎯 2×4 Radar
+            2×4 Matrix
+          </button>
+          <button type="button" class="planning-mode-btn ${state.planningMode === 'horizon' ? 'active' : ''}" data-planning-mode="horizon">
+            Horizon Plan (${todayFocusCount} Today)
+          </button>
+          <button type="button" class="planning-mode-btn ${state.planningMode === 'bus' ? 'active' : ''}" data-planning-mode="bus">
+            BHFIRMS BUs
           </button>
           <button type="button" class="planning-mode-btn ${state.planningMode === 'clusters' ? 'active' : ''}" data-planning-mode="clusters">
-            🗂️ Clusters (${active.length})
-          </button>
-          <button type="button" class="planning-mode-btn ${state.planningMode === 'subtopics' ? 'active' : ''}" data-planning-mode="subtopics">
-            🏷️ Sub-Topics &amp; BUs
+            Register (${active.length})
           </button>
         </div>
-        <div style="display:flex;align-items:center;gap:6px">
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+          ${
+            selDate !== 'all'
+              ? `<button type="button" class="mini-chip active" data-plan-date="all">📅 Filtering ${esc(selDate)} ✕</button>`
+              : ''
+          }
+          <button type="button" class="mini-chip" id="btn-auto-plan-today" title="Promote urgent, ready & due-today items into Today's Focus">
+            ⚡ Auto-Plan Today
+          </button>
+          <button type="button" class="mini-chip" id="btn-goto-delegation-studio" style="border-color:var(--brass);color:var(--brass-bright)">
+            + Delegate Task
+          </button>
           ${
             urgentItems.length > 0
-              ? `<button type="button" class="mini-chip active" data-goto-tasks-filter="ready" style="border-color:var(--emerald);color:var(--emerald)">🔥 ${urgentItems.length} Ready Now →</button>`
-              : `<span style="font-size:11px;color:var(--text-muted)" class="tabular">8 Clusters · ${active.length} active</span>`
+              ? `<button type="button" class="mini-chip active" data-goto-tasks-filter="ready" style="border-color:var(--emerald);color:var(--emerald)">${urgentItems.length} Ready Now →</button>`
+              : ''
           }
         </div>
       </div>
     `;
 
+    const weekStripHtml = buildSevenDayHorizonStripHtml(allActive, now);
+
+    // MODE B: 4-COLUMN EXECUTIVE HORIZON PLAN (Today / Tomorrow / This Week / Backlog)
+    if (state.planningMode === 'horizon') {
+      const cols = [
+        {
+          id: 'today',
+          title: "1. Today's Focus & Ready",
+          sub: 'Execute or verify today',
+          accent: 'var(--emerald)'
+        },
+        {
+          id: 'tomorrow',
+          title: '2. Tomorrow',
+          sub: 'Queued for tomorrow morning',
+          accent: 'var(--brass)'
+        },
+        {
+          id: 'week',
+          title: '3. This Week & Active Holds',
+          sub: 'Scheduled checks & 2–7d timers',
+          accent: 'var(--steel)'
+        },
+        {
+          id: 'backlog',
+          title: '4. Backlog & Strategic Ideas',
+          sub: 'Parked concepts & personal goals',
+          accent: 'var(--text-muted)'
+        }
+      ];
+
+      const colsHtml = cols
+        .map((col) => {
+          const colItems = active
+            .filter((r) => getEffectiveHorizon(r, now) === col.id)
+            .sort((a, b) => {
+              const pOrder = { p1: 0, p2: 1, p3: 2 };
+              const pa = pOrder[a.priority || 'p3'] ?? 2;
+              const pb = pOrder[b.priority || 'p3'] ?? 2;
+              if (pa !== pb) return pa - pb;
+              return Number(a.matureAt || a.dueAt || a.createdAt || 0) - Number(b.matureAt || b.dueAt || b.createdAt || 0);
+            });
+
+          const cardsHtml = colItems.length
+            ? colItems
+                .map((it) => {
+                  const cl = CLUSTERS.find((c) => c.id === it.category) || CLUSTERS[3];
+                  const t = Number(it.matureAt || it.dueAt || 0);
+                  const isReady = (t > 0 && now >= t) || it.delegationStatus === 'done';
+                  const steps = Array.isArray(it.checklist) ? it.checklist : [];
+                  const doneSteps = steps.filter((s) => s.done).length;
+                  const buMeta = BHFIRMS_BUS.find((b) => b.id === it.buId);
+
+                  return `
+                    <div class="horizon-task-card" data-open-workbench="${esc(it.id)}">
+                      <div class="horizon-task-top">
+                        <button type="button" class="bento-micro-check" data-act="toggle-done" data-id="${esc(it.id)}" title="Complete">✓</button>
+                        <div class="horizon-task-title">${esc(it.title)}</div>
+                      </div>
+                      ${
+                        it.notes
+                          ? `<div style="font-size:11px;color:var(--text-secondary);line-height:1.35">${esc(it.notes.slice(0, 90))}</div>`
+                          : ''
+                      }
+                      <div class="horizon-task-foot">
+                        <div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap">
+                          ${it.priority === 'p1' ? `<span class="t-pill p1">P1</span>` : it.priority === 'p2' ? `<span class="t-pill p2">P2</span>` : ''}
+                          <span class="t-pill">${esc(cl.shortLabel)}</span>
+                          ${buMeta ? `<span class="t-pill">${esc(buMeta.short)}</span>` : ''}
+                          ${it.assigneeName ? `<span class="t-pill person">${esc(it.assigneeName)}</span>` : ''}
+                          ${steps.length > 0 ? `<span class="t-pill steps tabular">${doneSteps}/${steps.length}</span>` : ''}
+                          ${
+                            t > 0
+                              ? `<span class="t-pill ${isReady ? 'matured' : 'timer'} tabular">${
+                                  isReady ? 'Ready' : esc(formatCountdown(t, now))
+                                }</span>`
+                              : ''
+                          }
+                        </div>
+                        <div style="display:flex;align-items:center;gap:3px">
+                          ${
+                            col.id !== 'today'
+                              ? `<button type="button" class="mini-chip" data-act="set-horizon" data-id="${esc(it.id)}" data-horizon="today" style="padding:2px 6px;font-size:10px" title="Move to Today">Today</button>`
+                              : `<button type="button" class="mini-chip" data-act="set-horizon" data-id="${esc(it.id)}" data-horizon="tomorrow" style="padding:2px 6px;font-size:10px" title="Defer to Tomorrow">→ Tmrw</button>`
+                          }
+                          <button type="button" class="mini-chip" data-act="open-workbench" data-id="${esc(it.id)}" style="padding:2px 6px;font-size:10px">✎</button>
+                        </div>
+                      </div>
+                    </div>
+                  `;
+                })
+                .join('')
+            : `<div style="padding:18px 12px;text-align:center;color:var(--text-muted);font-size:11.5px;border:1px dashed var(--border-subtle);border-radius:7px">${esc(col.sub)}</div>`;
+
+          return `
+            <div class="horizon-col" style="border-top:3px solid ${col.accent}">
+              <div class="horizon-col-head">
+                <div>
+                  <div class="horizon-col-title">${esc(col.title)}</div>
+                  <div style="font-size:10.5px;color:var(--text-muted)">${esc(col.sub)}</div>
+                </div>
+                <span class="bento-count ${colItems.length ? 'active' : ''} tabular">${colItems.length}</span>
+              </div>
+              <form class="bento-inline-form" data-inline-horizon-form="${col.id}" style="padding:6px 10px;border-top:none;border-bottom:1px solid var(--border-subtle)">
+                <input type="text" class="bento-inline-input" placeholder="+ Add to ${esc(col.title.replace(/^[0-9]+\.\s*/, ''))}…" required>
+                <button type="submit" class="bento-inline-btn">+ Add</button>
+              </form>
+              <div class="horizon-col-body">
+                ${cardsHtml}
+              </div>
+            </div>
+          `;
+        })
+        .join('');
+
+      root.innerHTML = `
+        ${weekStripHtml}
+        ${toolbarHtml}
+        <div class="horizon-board-grid">
+          ${colsHtml}
+        </div>
+      `;
+      return;
+    }
+
+    // MODE C: 6-CARD BHFIRMS BUSINESS UNIT PORTFOLIO BOARD
+    if (state.planningMode === 'bus') {
+      const buCards = [
+        { id: 'hospitality', title: 'Hospitality & Resorts', sub: 'Blanca · La Una · Palms · Voile · Platinum', accent: '#3B82F6' },
+        { id: 'manufacturing', title: 'Manufacturing & Construction', sub: 'WTC · BBConstruction · Lions Transport', accent: '#C69D53' },
+        { id: 'trading', title: 'Trading Operations', sub: 'Korri Auto · Shacman Trucks & Parts', accent: '#10B981' },
+        { id: 'realestate_ins', title: 'Real Estate & Insurance', sub: 'Properties Portfolio · Insurance Brokerage', accent: '#8B5CF6' },
+        { id: 'holding', title: 'Bdeir Holding & Finance', sub: 'Corporate · Treasury · Payments · Tech', accent: '#F59E0B' },
+        { id: 'personal', title: 'Personal, Family & Ideas', sub: 'Home · Verify Checks · Strategic Concepts', accent: '#EC4899' }
+      ];
+
+      const cardsHtml = buCards
+        .map((bu) => {
+          const buItems = active.filter((r) => {
+            if (bu.id === 'personal') {
+              return !r.buId && (r.category === 'family' || r.category === 'ideas' || r.category === 'want_to_do' || r.category === 'verify' || r.category === 'shipping');
+            }
+            if (bu.id === 'holding') {
+              return r.buId === 'holding' || r.buId === 'tech' || (!r.buId && (r.category === 'work' || r.category === 'payments' || r.category === 'people'));
+            }
+            return r.buId === bu.id;
+          });
+          const delCount = buItems.filter((r) => r.isDelegated).length;
+
+          return `
+            <div class="bu-plan-card" style="border-top:3px solid ${bu.accent}">
+              <div class="bu-plan-head">
+                <div>
+                  <div style="font-size:13px;font-weight:800;color:var(--text-primary)">${esc(bu.title)}</div>
+                  <div style="font-size:10.5px;color:var(--text-muted)">${esc(bu.sub)}</div>
+                </div>
+                <div style="display:flex;align-items:center;gap:4px">
+                  ${delCount > 0 ? `<span class="t-pill person tabular">${delCount} delegated</span>` : ''}
+                  <span class="bento-count ${buItems.length ? 'active' : ''} tabular">${buItems.length}</span>
+                </div>
+              </div>
+              <form class="bento-inline-form" data-inline-bu-form="${bu.id}" style="padding:6px 10px;border-top:none;border-bottom:1px solid var(--border-subtle)">
+                <input type="text" class="bento-inline-input" placeholder="+ Add task for ${esc(bu.title.split('&')[0].trim())}…" required>
+                <button type="submit" class="bento-inline-btn">+ Add</button>
+              </form>
+              <div class="bu-plan-body">
+                ${
+                  buItems.length
+                    ? buItems.map((it) => renderTickerRowHtml(it, now)).join('')
+                    : `<div style="padding:18px 10px;text-align:center;color:var(--text-muted);font-size:11.5px">No active items queued for ${esc(bu.title)}</div>`
+                }
+              </div>
+            </div>
+          `;
+        })
+        .join('');
+
+      root.innerHTML = `
+        ${weekStripHtml}
+        ${toolbarHtml}
+        <div class="bu-board-grid">
+          ${cardsHtml}
+        </div>
+      `;
+      return;
+    }
+
+    // MODE D: STRUCTURED REGISTER (CLUSTERS / SUBTOPICS)
     if (state.planningMode !== 'radar') {
       const filtered =
         state.boardFilter === 'completed'
@@ -3602,31 +4483,12 @@
             : active.filter((r) => (r.category || 'work') === state.boardFilter);
 
       let listHtml = '';
-      if (state.planningMode === 'subtopics' && state.boardFilter !== 'completed') {
-        const groups = new Map();
-        for (const r of filtered) {
-          const cl = CLUSTERS.find((c) => c.id === (r.category || 'work')) || CLUSTERS[3];
-          const key = r.subTag ? `${cl.icon} ${cl.shortLabel} · ${r.subTag}` : `${cl.icon} ${cl.label}`;
-          if (!groups.has(key)) groups.set(key, []);
-          groups.get(key).push(r);
-        }
-        listHtml = Array.from(groups.entries())
-          .map(
-            ([gName, items]) => `
-            <div class="ticker-group-header">
-              <span>${esc(gName)}</span>
-              <span>${items.length}</span>
-            </div>
-            ${items.map((it) => renderTickerRowHtml(it, now)).join('')}
-          `
-          )
-          .join('');
-      } else if (state.boardFilter === 'all') {
+      if (state.boardFilter === 'all') {
         const groups = new Map();
         for (const c of CLUSTERS) {
           const cItems = active.filter((r) => (r.category || 'work') === c.id);
           if (cItems.length) {
-            groups.set(`${c.icon} ${c.label}`, cItems);
+            groups.set(c.label, cItems);
           }
         }
         listHtml = Array.from(groups.entries())
@@ -3645,6 +4507,7 @@
       }
 
       root.innerHTML = `
+        ${weekStripHtml}
         ${toolbarHtml}
         <div class="view-filter-bar">
           <div class="horiz-pill-strip">
@@ -3655,7 +4518,7 @@
               const cnt = active.filter((r) => (r.category || 'work') === c.id).length;
               return `
                 <button type="button" class="filter-pill ${state.boardFilter === c.id ? 'active' : ''}" data-board-filter="${c.id}">
-                  ${c.icon} ${esc(c.shortLabel)} (${cnt})
+                  ${esc(c.shortLabel)} (${cnt})
                 </button>
               `;
             }).join('')}
@@ -3674,19 +4537,20 @@
       return;
     }
 
+    // MODE A: UPGRADED 2X4 ARCHITECTURAL COMMAND MATRIX (RADAR)
     const urgentHtml = urgentItems.length
       ? `
       <div class="radar-urgent-strip">
         <strong style="font-size:11px;color:var(--emerald);flex-shrink:0;text-transform:uppercase;letter-spacing:0.05em">
-          🔥 Ready Now (${urgentItems.length})
+          Ready Now (${urgentItems.length})
         </strong>
         ${urgentItems
           .slice(0, 6)
           .map(
             (u) => `
-          <div class="urgent-pill-item">
+          <div class="urgent-pill-item" data-open-workbench="${esc(u.id)}" style="cursor:pointer">
             <button type="button" class="bento-micro-check" data-act="toggle-done" data-id="${esc(u.id)}" title="Complete">✓</button>
-            <span>${esc(u.title.slice(0, 38))}</span>
+            <span>${esc(u.title.slice(0, 42))}</span>
             ${
               u.delegationStatus === 'done'
                 ? `<span class="bento-micro-tag matured">✅ ${esc(u.assigneeName)} Done</span>`
@@ -3701,7 +4565,7 @@
       : '';
 
     const isMobileViewport = typeof window !== 'undefined' && window.innerWidth <= 640;
-    const maxPreviewRows = isMobileViewport ? 1 : 3;
+    const maxPreviewRows = isMobileViewport ? 2 : 4;
 
     const tilesHtml = CLUSTERS.map((c) => {
       const items = active.filter((r) => (r.category || 'work') === c.id);
@@ -3710,25 +4574,32 @@
         return (t > 0 && now >= t) || r.delegationStatus === 'done';
       }).length;
 
-      const tileCls = [
-        'bento-tile',
-        maturedCount > 0 ? 'has-matured' : ''
-      ]
+      const tileCls = ['bento-tile', maturedCount > 0 ? 'has-matured' : '']
         .filter(Boolean)
         .join(' ');
 
       const topRows = items.slice(0, maxPreviewRows).map((it) => {
         const t = Number(it.matureAt || it.dueAt || 0);
         const isReady = (t > 0 && now >= t) || it.delegationStatus === 'done';
-        const tagTxt = it.assigneeName
-          ? `👤 ${it.assigneeName}`
-          : t > 0
-            ? formatCountdown(t, now)
-            : it.subTag
-              ? it.subTag.replace(/^[^\w]+/, '').trim().slice(0, 8)
+        const steps = Array.isArray(it.checklist) ? it.checklist : [];
+        const doneSteps = steps.filter((s) => s.done).length;
+        const priDot =
+          it.priority === 'p1'
+            ? `<span style="width:6px;height:6px;border-radius:50%;background:var(--crimson);flex-shrink:0" title="P1 Critical"></span>`
+            : it.priority === 'p2'
+              ? `<span style="width:6px;height:6px;border-radius:50%;background:var(--amber);flex-shrink:0" title="P2 High"></span>`
               : '';
+        const tagTxt = it.assigneeName
+          ? `${it.assigneeName}`
+          : steps.length > 0
+            ? `${doneSteps}/${steps.length}`
+            : t > 0
+              ? formatCountdown(t, now)
+              : it.subTag
+                ? it.subTag.replace(/^[^\w]+/, '').trim().slice(0, 10)
+                : '';
         return `
-          <div class="bento-micro-row" data-micro-id="${esc(it.id)}">
+          <div class="bento-micro-row" data-open-workbench="${esc(it.id)}" title="Click to open Task Workbench">
             <button
               type="button"
               class="bento-micro-check"
@@ -3736,6 +4607,7 @@
               data-id="${esc(it.id)}"
               title="Complete now"
             >✓</button>
+            ${priDot}
             <span class="bento-micro-text">${esc(it.title)}</span>
             ${
               tagTxt
@@ -3746,12 +4618,46 @@
         `;
       });
 
+      const emptyStateHtml = `
+        <div class="bento-empty">
+          <div class="bento-empty-top">
+            <span>${esc(c.sub)}</span>
+            <span style="font-family:var(--font-mono);font-size:10px;opacity:0.7">0 queued</span>
+          </div>
+          ${
+            Array.isArray(c.templates) && c.templates.length > 0
+              ? `
+            <div class="bento-empty-templates">
+              ${c.templates
+                .map(
+                  (tpl) => `
+                <button
+                  type="button"
+                  class="bento-template-chip"
+                  data-template-cluster="${c.id}"
+                  data-template-text="${esc(tpl)}"
+                  title="Click to prefill '${esc(tpl)}'"
+                >+ ${esc(tpl)}</button>
+              `
+                )
+                .join('')}
+            </div>
+          `
+              : ''
+          }
+        </div>
+      `;
+
+      const svgIcon = CLUSTER_SVGS[c.id] || c.icon;
+
       return `
-        <div class="${tileCls}" data-open-cluster="${c.id}">
-          <div class="bento-head">
+        <div class="${tileCls}" data-cluster-id="${c.id}">
+          <div class="bento-head" data-open-cluster="${c.id}" style="cursor:pointer" title="Click header to open full ${esc(c.label)} sheet">
             <div class="bento-title-wrap">
-              <span class="bento-icon">${c.icon}</span>
-              <span class="bento-title">${esc(isMobileViewport ? c.shortLabel : c.label)}</span>
+              <span class="bento-icon">${svgIcon}</span>
+              <div>
+                <div class="bento-title">${esc(isMobileViewport ? c.shortLabel : c.label)}</div>
+              </div>
             </div>
             <div class="bento-count-wrap">
               ${
@@ -3764,22 +4670,30 @@
           </div>
 
           <div class="bento-items">
+            ${topRows.length ? topRows.join('') : emptyStateHtml}
             ${
-              topRows.length
-                ? topRows.join('')
-                : `<div class="bento-empty"><span>${esc(c.sub)}</span><span>+</span></div>`
+              items.length > maxPreviewRows
+                ? `<button type="button" class="mini-chip" data-open-cluster="${c.id}" style="align-self:flex-start;font-size:10.5px">+${items.length - maxPreviewRows} more in ${esc(c.shortLabel)} →</button>`
+                : ''
             }
           </div>
 
-          <div class="bento-foot">
-            <span>${items.length > maxPreviewRows ? `+${items.length - maxPreviewRows} more · Tap to expand` : 'Tap to open or + add'}</span>
-            <span>↗</span>
-          </div>
+          <form class="bento-inline-form" data-inline-cluster-form="${c.id}">
+            <input
+              type="text"
+              class="bento-inline-input"
+              name="inlineTitle"
+              placeholder="+ Add to ${esc(c.shortLabel)}…"
+              autocomplete="off"
+            >
+            <button type="submit" class="bento-inline-btn">Add</button>
+          </form>
         </div>
       `;
     }).join('');
 
     root.innerHTML = `
+      ${weekStripHtml}
       ${toolbarHtml}
       ${urgentHtml}
       <div class="bento-radar-grid">
@@ -3805,7 +4719,7 @@
   }
 
   function isDelegatedItem(r) {
-    if (!r || r.completed) return false;
+    if (!r || r.completed || r.deleted) return false;
     if (r.category === 'ideas' || r.category === 'want_to_do') return Boolean(r.isDelegated || r.assigneeName);
     return Boolean(r.isDelegated || r.assigneeName || r.category === 'people');
   }
@@ -3839,14 +4753,14 @@
 
     const filters = [
       { id: 'all', lbl: `All Active (${active.length})` },
-      { id: 'ready', lbl: `🔥 Ready Now (${readyList.length})` },
-      { id: 'action', lbl: `⚡ Action Tasks (${actionList.length})` },
-      { id: 'timers', lbl: `⏳ Wait Timers (${timerList.length})` },
-      { id: 'verify', lbl: `🔍 Verify / App (${verifyList.length})` },
-      { id: 'shipping', lbl: `📦 Shipping (${shippingList.length})` },
-      { id: 'payments', lbl: `💸 Payment Holds (${paymentList.length})` },
-      { id: 'recurring', lbl: `🔁 Recurring (${recurList.length})` },
-      { id: 'ideas', lbl: `💡 Ideas & Parked (${ideasList.length})` },
+      { id: 'ready', lbl: `Ready Now (${readyList.length})` },
+      { id: 'action', lbl: `Action Tasks (${actionList.length})` },
+      { id: 'timers', lbl: `Wait Timers (${timerList.length})` },
+      { id: 'verify', lbl: `Verify / App (${verifyList.length})` },
+      { id: 'shipping', lbl: `Shipping (${shippingList.length})` },
+      { id: 'payments', lbl: `Payment Holds (${paymentList.length})` },
+      { id: 'recurring', lbl: `Recurring (${recurList.length})` },
+      { id: 'ideas', lbl: `Ideas & Parked (${ideasList.length})` },
       { id: 'done', lbl: `✓ Done (${completed.length})` }
     ];
 
@@ -3856,21 +4770,21 @@
     if (fId === 'all') {
       const sections = [
         {
-          title: `🔥 Ready Now & Matured Holds`,
+          title: `Ready Now & Matured Holds`,
           items: readyList
         },
         {
-          title: `⚡ Action Tasks & Follow-Ups`,
+          title: `Action Tasks & Executive Follow-Ups`,
           items: actionList.filter((r) => !isReadyNowItem(r, now))
         },
         {
-          title: `⏳ Active Wait Timers (Verify, Shipping & Payment Holds)`,
+          title: `Active Wait Timers (Verify, Shipping & Payment Holds)`,
           items: timerList
             .filter((r) => !isReadyNowItem(r, now))
             .sort((a, b) => Number(a.matureAt || a.dueAt || 0) - Number(b.matureAt || b.dueAt || 0))
         },
         {
-          title: `💡 Want To Do & Ideas for Later`,
+          title: `Want To Do & Strategic Ideas`,
           items: active.filter(
             (r) =>
               (r.category === 'ideas' || r.category === 'want_to_do') &&
@@ -3892,7 +4806,7 @@
           `
             )
             .join('')
-        : `<div style="padding:28px;text-align:center;color:var(--text-muted)">All clear! Drop a task, @Person delegation, verify check, shipping countdown, or payment hold in the bar above.</div>`;
+        : `<div style="padding:28px;text-align:center;color:var(--text-muted)">All clear! Capture a task, @Person delegation, verify check, shipping countdown, or payment hold in the bar above.</div>`;
     } else {
       const mapByFilter = {
         ready: readyList,
@@ -3932,21 +4846,88 @@
   }
 
   /* ============================================================================
-     TAB 3: BHFIRMS ORGANIZATIONAL DELEGATION & TEAM ACCOUNTABILITY MATRIX
+     TAB 3: BHFIRMS DELEGATION STUDIO, 4-STAGE PIPELINE & WORKLOAD MATRIX
      ============================================================================ */
+  function renderDelegatedCardHtml(it, now = Date.now()) {
+    const buMeta = BHFIRMS_BUS.find((b) => b.id === it.buId);
+    const t = Number(it.dueAt || it.matureAt || 0);
+    const isOverdue = t > 0 && now > t && it.delegationStatus !== 'done';
+    const steps = Array.isArray(it.checklist) ? it.checklist : [];
+    const doneSteps = steps.filter((s) => s.done).length;
+    const curStage = it.delegationStatus || 'assigned';
+
+    return `
+      <div class="del-card" data-del-card-id="${esc(it.id)}">
+        <div class="del-card-top">
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;min-width:0">
+            <span class="t-pill person">👤 ${esc(it.assigneeName || 'Unassigned')}</span>
+            ${buMeta ? `<span class="t-pill">${esc(buMeta.short)}</span>` : ''}
+            ${it.priority === 'p1' ? `<span class="t-pill p1">P1</span>` : it.priority === 'p2' ? `<span class="t-pill p2">P2</span>` : ''}
+            ${steps.length > 0 ? `<span class="t-pill steps tabular">${doneSteps}/${steps.length} steps</span>` : ''}
+          </div>
+          ${
+            t > 0
+              ? `<span class="t-pill ${isOverdue ? 'p1' : 'timer'} tabular">${
+                  isOverdue ? 'Overdue' : esc(formatCountdown(t, now))
+                }</span>`
+              : ''
+          }
+        </div>
+
+        <div class="del-card-title" data-act="open-workbench" data-id="${esc(it.id)}" style="cursor:pointer" title="Click to open Task Workbench">
+          ${esc(it.title)}
+        </div>
+
+        ${
+          it.notes
+            ? `<div style="font-size:11px;color:var(--text-secondary);line-height:1.35">${esc(it.notes.slice(0, 110))}</div>`
+            : ''
+        }
+
+        ${
+          it.staffNote
+            ? `<div style="padding:5px 8px;border-radius:6px;background:var(--emerald-soft);border:1px solid rgba(16,185,129,0.3);font-size:11px;color:var(--emerald)">
+                💬 <strong>${esc(it.assigneeName || 'Staff')}:</strong> ${esc(it.staffNote)}
+              </div>`
+            : ''
+        }
+
+        <div class="del-card-foot">
+          <div class="del-stage-stepper">
+            ${['assigned', 'sent', 'seen', 'working', 'done']
+              .map(
+                (stKey) => `
+              <button
+                type="button"
+                class="del-stage-pill ${curStage === stKey ? `active-${stKey}` : ''}"
+                data-act="set-del-stage"
+                data-id="${esc(it.id)}"
+                data-stage="${stKey}"
+                title="Set stage to ${stKey}"
+              >${stKey === 'assigned' ? 'Assigned' : stKey === 'sent' ? 'Sent' : stKey === 'seen' ? 'Seen' : stKey === 'working' ? 'Working' : 'Done'}</button>
+            `
+              )
+              .join('')}
+          </div>
+
+          <div style="display:flex;align-items:center;gap:4px">
+            <button type="button" class="mini-chip wa-btn" data-act="whatsapp" data-id="${esc(it.id)}" style="padding:3px 7px;font-size:10.5px">
+              📲 ${curStage === 'assigned' ? 'Send' : 'Nudge'}
+            </button>
+            <button type="button" class="mini-chip" data-act="open-workbench" data-id="${esc(it.id)}" style="padding:3px 7px;font-size:10.5px" title="Edit task & steps">✎</button>
+            <button type="button" class="mini-chip active" data-act="toggle-done" data-id="${esc(it.id)}" style="padding:3px 7px;font-size:10.5px;border-color:var(--emerald);color:var(--emerald)" title="Verify & Complete">✓ Verify</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
   function renderDelegatedView() {
     const root = document.getElementById('view-delegated');
     if (!root) return;
     const now = Date.now();
     const delegated = state.reminders.filter(isDelegatedItem);
-
-    const statusCounts = {
-      all: delegated.length,
-      waiting: delegated.filter((r) => !r.delegationStatus || r.delegationStatus === 'assigned' || r.delegationStatus === 'sent').length,
-      seen: delegated.filter((r) => r.delegationStatus === 'seen').length,
-      working: delegated.filter((r) => r.delegationStatus === 'working').length,
-      done: delegated.filter((r) => r.delegationStatus === 'done').length
-    };
+    const viewMode = state.delegatedViewMode || 'pipeline';
 
     const filtered = delegated.filter((r) => {
       if (state.delegatedBuFilter !== 'all' && r.buId !== state.delegatedBuFilter) return false;
@@ -3959,23 +4940,141 @@
       return true;
     });
 
-    // Group by Assignee
-    const byPerson = new Map();
-    for (const r of filtered) {
-      const inferred =
-        r.assigneeName ||
-        (r.subTag && r.subTag.startsWith('👤') ? r.subTag.replace(/^👤\s*/, '').trim() : '') ||
-        extractSmartContext(r.title).assigneeName ||
-        'General Follow-Up';
-      if (!byPerson.has(inferred)) byPerson.set(inferred, []);
-      byPerson.get(inferred).push(r);
+    // Collect all known team members (from roster + any active delegated tasks)
+    const rosterPeople = [...state.teamRoster];
+    for (const r of delegated) {
+      const nm = String(r.assigneeName || '').trim();
+      if (nm && !rosterPeople.some((m) => m.name.toLowerCase() === nm.toLowerCase())) {
+        rosterPeople.push({
+          id: `inferred_${nm.toLowerCase()}`,
+          name: nm,
+          role: 'Team Member',
+          bu: r.buId || 'holding',
+          phone: ''
+        });
+      }
     }
 
-    root.innerHTML = `
-      <div class="view-filter-bar">
+    const selectedStudioPerson = state.studioAssigneeName || state.draft.assigneeName || (rosterPeople[0]?.name || '');
+    const selectedStudioBu = state.studioAssigneeBu || state.draft.assigneeBu || (rosterPeople[0]?.bu || '');
+
+    // Fast Delegation Composer Deck
+    const composerDeckHtml = `
+      <div class="del-command-deck">
+        <div class="del-deck-top">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <span class="del-deck-title">Executive Delegation Studio</span>
+            <span style="font-size:11px;color:var(--text-muted)">Assign a task with deliverable checkpoints &amp; dispatch a live status link via WhatsApp</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <button type="button" class="mini-chip" id="btn-manage-roster">
+              👥 Team Roster (${state.teamRoster.length})
+            </button>
+            <button type="button" class="mini-chip" id="btn-quick-add-person">
+              + Add Person
+            </button>
+          </div>
+        </div>
+
+        <div class="horiz-pill-strip" style="padding-bottom:2px">
+          <span style="font-size:11px;font-weight:700;color:var(--text-secondary);flex-shrink:0">Assign to:</span>
+          ${
+            rosterPeople.length > 0
+              ? rosterPeople
+                  .map((m) => {
+                    const isSel = selectedStudioPerson.toLowerCase() === m.name.toLowerCase();
+                    const bMeta = BHFIRMS_BUS.find((b) => b.id === m.bu);
+                    return `
+                      <button
+                        type="button"
+                        class="mini-chip ${isSel ? 'active' : ''}"
+                        data-studio-pick-person="${esc(m.name)}"
+                        data-studio-pick-bu="${esc(m.bu || '')}"
+                      >
+                        👤 ${esc(m.name)}${bMeta ? ` · ${esc(bMeta.short)}` : ''}
+                      </button>
+                    `;
+                  })
+                  .join('')
+              : `<span style="font-size:11px;color:var(--text-muted)">Type a person's name below (they will be saved to your Team Roster automatically)</span>`
+          }
+        </div>
+
+        <form id="del-studio-form" style="display:flex;flex-direction:column;gap:6px" autocomplete="off">
+          <div class="del-composer-row">
+            <input
+              type="text"
+              id="del-studio-person"
+              class="del-composer-input"
+              style="flex:0 0 155px"
+              value="${esc(selectedStudioPerson)}"
+              placeholder="Assignee (e.g. Ali)"
+              required
+            >
+            <input
+              type="text"
+              id="del-studio-title"
+              class="del-composer-input"
+              placeholder="What needs to be delivered? (e.g. Inspect filter press pressure & send photo)"
+              required
+            >
+            <select id="del-studio-bu" class="del-composer-select">
+              <option value="">Unit (Auto)</option>
+              ${BHFIRMS_BUS.map(
+                (b) => `<option value="${b.id}" ${selectedStudioBu === b.id ? 'selected' : ''}>${esc(b.short)}</option>`
+              ).join('')}
+            </select>
+            <select id="del-studio-priority" class="del-composer-select">
+              <option value="p2">P2 · High</option>
+              <option value="p1">P1 · Critical</option>
+              <option value="p3">P3 · Normal</option>
+            </select>
+            <select id="del-studio-wait" class="del-composer-select">
+              <option value="today">Today 18:00</option>
+              <option value="1d">+24h SLA</option>
+              <option value="tonight">Tonight 20:30</option>
+              <option value="2d">+48h SLA</option>
+              <option value="7d">In 7 Days</option>
+              <option value="park">No Timer</option>
+            </select>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+            <input
+              type="text"
+              id="del-studio-steps"
+              class="del-composer-input"
+              style="font-size:11.5px;padding:6px 10px"
+              placeholder="Deliverable steps or instructions (optional, separate steps with | e.g. Check invoice | Confirm bank transfer | Upload receipt)"
+            >
+            <button type="submit" class="t-act-btn primary" data-studio-submit="assign" style="padding:7px 12px;flex-shrink:0">
+              ✓ Assign &amp; Track
+            </button>
+            <button type="submit" class="t-act-btn wa" data-studio-submit="whatsapp" style="padding:7px 12px;flex-shrink:0">
+              📲 Assign &amp; WhatsApp
+            </button>
+          </div>
+        </form>
+      </div>
+    `;
+
+    const toolbarHtml = `
+      <div class="planning-toolbar">
+        <div class="planning-mode-seg" role="tablist">
+          <button type="button" class="planning-mode-btn ${viewMode === 'pipeline' ? 'active' : ''}" data-del-view-mode="pipeline">
+            4-Stage Pipeline (${filtered.length})
+          </button>
+          <button type="button" class="planning-mode-btn ${viewMode === 'people' ? 'active' : ''}" data-del-view-mode="people">
+            By Person &amp; Digest (${rosterPeople.length})
+          </button>
+          <button type="button" class="planning-mode-btn ${viewMode === 'list' ? 'active' : ''}" data-del-view-mode="list">
+            Full Register
+          </button>
+        </div>
+
         <div class="horiz-pill-strip">
           <button type="button" class="filter-pill ${state.delegatedBuFilter === 'all' ? 'active' : ''}" data-del-bu="all">
-            All BHFIRMS BUs (${delegated.length})
+            All BUs (${delegated.length})
           </button>
           ${BHFIRMS_BUS.map(
             (b) => `
@@ -3985,17 +5084,188 @@
           `
           ).join('')}
         </div>
-        <button type="button" class="filter-pill active" id="btn-manage-roster">👥 Team Roster (${state.teamRoster.length})</button>
       </div>
+    `;
 
-      <div class="horiz-pill-strip" style="flex:0 0 auto">
-        <button type="button" class="mini-chip ${state.delegatedStatusFilter === 'all' ? 'active' : ''}" data-del-status="all">All (${statusCounts.all})</button>
-        <button type="button" class="mini-chip ${state.delegatedStatusFilter === 'waiting' ? 'active' : ''}" data-del-status="waiting">📨 Sent / Waiting (${statusCounts.waiting})</button>
-        <button type="button" class="mini-chip ${state.delegatedStatusFilter === 'seen' ? 'active' : ''}" data-del-status="seen">👀 Seen (${statusCounts.seen})</button>
-        <button type="button" class="mini-chip ${state.delegatedStatusFilter === 'working' ? 'active' : ''}" data-del-status="working">⚙️ Working (${statusCounts.working})</button>
-        <button type="button" class="mini-chip ${state.delegatedStatusFilter === 'done' ? 'active' : ''}" data-del-status="done">✅ Done · Verify (${statusCounts.done})</button>
-      </div>
+    // VIEW 1: 4-STAGE ACCOUNTABILITY PIPELINE
+    if (viewMode === 'pipeline') {
+      const stages = [
+        {
+          id: 'assigned',
+          title: '1. Assigned · To Dispatch',
+          sub: 'Ready to send via WhatsApp',
+          accent: 'var(--text-muted)',
+          items: filtered.filter((r) => !r.delegationStatus || r.delegationStatus === 'assigned')
+        },
+        {
+          id: 'sent',
+          title: '2. Dispatched · Awaiting Seen',
+          sub: 'Link sent, waiting for staff open',
+          accent: 'var(--brass)',
+          items: filtered.filter((r) => r.delegationStatus === 'sent')
+        },
+        {
+          id: 'working',
+          title: '3. Seen & In Progress',
+          sub: 'Staff acknowledged or working',
+          accent: 'var(--steel)',
+          items: filtered.filter(
+            (r) =>
+              r.delegationStatus === 'seen' ||
+              r.delegationStatus === 'working' ||
+              r.delegationStatus === 'blocked'
+          )
+        },
+        {
+          id: 'done',
+          title: '4. Staff Completed · Verify',
+          sub: 'Ready for your sign-off',
+          accent: 'var(--emerald)',
+          items: filtered.filter((r) => r.delegationStatus === 'done')
+        }
+      ];
 
+      const colsHtml = stages
+        .map(
+          (st) => `
+        <div class="del-stage-col" style="border-top:3px solid ${st.accent}">
+          <div class="del-stage-head">
+            <div>
+              <div class="del-stage-title">${esc(st.title)}</div>
+              <div style="font-size:10px;color:var(--text-muted)">${esc(st.sub)}</div>
+            </div>
+            <span class="bento-count ${st.items.length ? 'active' : ''} tabular">${st.items.length}</span>
+          </div>
+          <div class="del-stage-body">
+            ${
+              st.items.length
+                ? st.items.map((it) => renderDelegatedCardHtml(it, now)).join('')
+                : `<div style="padding:18px 10px;text-align:center;color:var(--text-muted);font-size:11px;border:1px dashed var(--border-subtle);border-radius:7px">No tasks in this stage</div>`
+            }
+          </div>
+        </div>
+      `
+        )
+        .join('');
+
+      root.innerHTML = `
+        ${composerDeckHtml}
+        ${toolbarHtml}
+        <div class="del-pipeline-grid">
+          ${colsHtml}
+        </div>
+      `;
+      return;
+    }
+
+    // VIEW 2: TEAM WORKLOAD & CONSOLIDATED DIGEST MATRIX
+    if (viewMode === 'people') {
+      const peopleCardsHtml = rosterPeople.length
+        ? rosterPeople
+            .map((m) => {
+              const pItems = filtered.filter(
+                (r) => String(r.assigneeName || '').toLowerCase() === m.name.toLowerCase()
+              );
+              const waitingCnt = pItems.filter(
+                (r) => !r.delegationStatus || r.delegationStatus === 'assigned' || r.delegationStatus === 'sent'
+              ).length;
+              const workingCnt = pItems.filter(
+                (r) => r.delegationStatus === 'seen' || r.delegationStatus === 'working'
+              ).length;
+              const verifyCnt = pItems.filter((r) => r.delegationStatus === 'done').length;
+              const buMeta = BHFIRMS_BUS.find((b) => b.id === m.bu);
+              const initial = String(m.name || '?')
+                .trim()
+                .charAt(0)
+                .toUpperCase();
+
+              return `
+                <div class="person-workload-card">
+                  <div class="person-workload-head">
+                    <div style="display:flex;align-items:center;gap:9px">
+                      <div class="delegate-member-avatar">${esc(initial)}</div>
+                      <div>
+                        <div style="font-size:13.5px;font-weight:800;color:var(--text-primary)">${esc(m.name)}</div>
+                        <div style="font-size:11px;color:var(--text-muted)">
+                          ${buMeta ? esc(buMeta.short) : 'BHFIRMS'}${m.role ? ` · ${esc(m.role)}` : ''}${
+                            m.phone ? ` · 📱 ${esc(m.phone)}` : ''
+                          }
+                        </div>
+                      </div>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:5px">
+                      ${
+                        pItems.length > 0
+                          ? `<button type="button" class="mini-chip wa-btn" data-act="person-digest" data-person="${esc(m.name)}" title="Send 1 consolidated WhatsApp message with all ${pItems.length} active tasks">
+                              📲 Digest (${pItems.length})
+                            </button>`
+                          : ''
+                      }
+                    </div>
+                  </div>
+
+                  <div class="person-workload-kpis">
+                    <div class="person-kpi-cell">
+                      <div class="person-kpi-num tabular">${pItems.length}</div>
+                      <div class="person-kpi-lbl">Active</div>
+                    </div>
+                    <div class="person-kpi-cell">
+                      <div class="person-kpi-num tabular" style="color:var(--brass-bright)">${waitingCnt}</div>
+                      <div class="person-kpi-lbl">Awaiting</div>
+                    </div>
+                    <div class="person-kpi-cell">
+                      <div class="person-kpi-num tabular" style="color:var(--steel)">${workingCnt}</div>
+                      <div class="person-kpi-lbl">Working</div>
+                    </div>
+                    <div class="person-kpi-cell">
+                      <div class="person-kpi-num tabular" style="color:var(--emerald)">${verifyCnt}</div>
+                      <div class="person-kpi-lbl">To Verify</div>
+                    </div>
+                  </div>
+
+                  <form class="bento-inline-form" data-inline-person-form="${esc(m.name)}" data-inline-person-bu="${esc(m.bu || '')}" style="padding:6px 10px;border-top:none;border-bottom:1px solid var(--border-subtle)">
+                    <input type="text" class="bento-inline-input" placeholder="+ Assign task to ${esc(m.name)}…" required>
+                    <button type="submit" class="bento-inline-btn">+ Assign</button>
+                  </form>
+
+                  <div style="padding:8px;display:flex;flex-direction:column;gap:6px;max-height:260px;overflow-y:auto">
+                    ${
+                      pItems.length
+                        ? pItems.map((it) => renderDelegatedCardHtml(it, now)).join('')
+                        : `<div style="padding:14px;text-align:center;color:var(--text-muted);font-size:11.5px">No active tasks assigned to ${esc(m.name)}</div>`
+                    }
+                  </div>
+                </div>
+              `;
+            })
+            .join('')
+        : `<div style="padding:28px;text-align:center;color:var(--text-muted)">Add your first team member using the studio above or tap <strong>👥 Team Roster</strong>.</div>`;
+
+      root.innerHTML = `
+        ${composerDeckHtml}
+        ${toolbarHtml}
+        <div class="people-matrix-grid">
+          ${peopleCardsHtml}
+        </div>
+      `;
+      return;
+    }
+
+    // VIEW 3: FULL DELEGATION REGISTER
+    const byPerson = new Map();
+    for (const r of filtered) {
+      const inferred =
+        r.assigneeName ||
+        (r.subTag ? r.subTag.replace(/^👤\s*/, '').trim() : '') ||
+        extractSmartContext(r.title).assigneeName ||
+        'General Follow-Up';
+      if (!byPerson.has(inferred)) byPerson.set(inferred, []);
+      byPerson.get(inferred).push(r);
+    }
+
+    root.innerHTML = `
+      ${composerDeckHtml}
+      ${toolbarHtml}
       <div class="ticker-list">
         ${
           byPerson.size
@@ -4008,13 +5278,16 @@
                   return `
                   <div class="ticker-group-header">
                     <span>👤 ${esc(person)} ${buMeta ? `· ${esc(buMeta.short)}` : ''} ${member?.role ? `(${esc(member.role)})` : ''}</span>
-                    <span>${items.length} task${items.length === 1 ? '' : 's'}</span>
+                    <div style="display:flex;align-items:center;gap:6px">
+                      <button type="button" class="mini-chip wa-btn" data-act="person-digest" data-person="${esc(person)}" style="padding:2px 7px;font-size:10px">📲 Send Digest (${items.length})</button>
+                      <span>${items.length} task${items.length === 1 ? '' : 's'}</span>
+                    </div>
                   </div>
                   ${items.map((it) => renderTickerRowHtml(it, now)).join('')}
                 `;
                 })
                 .join('')
-            : `<div style="padding:28px;text-align:center;color:var(--text-muted)">No delegated tasks in this filter yet. Tap <strong>👥 Delegate</strong> in the top bar (or <strong>👥 Team Roster</strong> above) to assign a task and send a 1-tap WhatsApp tracking link.</div>`
+            : `<div style="padding:28px;text-align:center;color:var(--text-muted)">No delegated tasks in this filter yet. Use the <strong>Executive Delegation Studio</strong> above to assign and track a task.</div>`
         }
       </div>
     `;
@@ -4734,8 +6007,160 @@
       markNotificationsChecked((n) => n && viewedIds.has(n.id), true);
     }
     state.openClusterSheetId = '';
+    state.openTaskWorkbenchId = '';
     state.openSheetKind = '';
     if (backdrop) backdrop.hidden = true;
+  }
+
+  function openTaskWorkbenchSheet(taskId) {
+    const item = state.reminders.find((r) => r.id === taskId);
+    if (!item) return;
+    state.openClusterSheetId = '';
+    state.openTaskWorkbenchId = taskId;
+    state.openSheetKind = 'workbench';
+
+    const backdrop = document.getElementById('sheet-backdrop');
+    const titleWrap = document.getElementById('sheet-title-wrap');
+    const body = document.getElementById('sheet-body');
+    if (!backdrop || !titleWrap || !body) return;
+
+    const cluster = CLUSTERS.find((c) => c.id === item.category) || CLUSTERS[3];
+    const steps = Array.isArray(item.checklist) ? item.checklist : [];
+    const doneSteps = steps.filter((s) => s.done).length;
+    const targetAt = Number(item.dueAt || item.matureAt || 0);
+    let dtLocalVal = '';
+    if (targetAt > 0) {
+      const d = new Date(targetAt);
+      const pad = (n) => String(n).padStart(2, '0');
+      dtLocalVal = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    }
+
+    titleWrap.innerHTML = `
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%">
+        <div>
+          <strong style="font-size:15px">Executive Task Workbench</strong>
+          <div style="font-size:11px;color:var(--text-muted)">${esc(cluster.label)} · Plan horizon, deliverable steps &amp; delegation</div>
+        </div>
+      </div>
+    `;
+
+    body.innerHTML = `
+      <form id="workbench-save-form" class="roster-form-card" style="gap:10px" autocomplete="off">
+        <input type="hidden" id="wb-task-id" value="${esc(item.id)}">
+
+        <div>
+          <label style="font-size:11px;font-weight:800;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.05em">Task Title</label>
+          <input type="text" id="wb-title" class="roster-field" value="${esc(item.title)}" required style="margin-top:4px;font-weight:700">
+        </div>
+
+        <div class="roster-form-grid-2">
+          <div>
+            <label style="font-size:11px;font-weight:800;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.05em">Planning Horizon</label>
+            <select id="wb-horizon" class="roster-field" style="margin-top:4px;width:100%">
+              <option value="today" ${(item.horizon || 'today') === 'today' ? 'selected' : ''}>1. Today's Focus</option>
+              <option value="tomorrow" ${item.horizon === 'tomorrow' ? 'selected' : ''}>2. Tomorrow</option>
+              <option value="week" ${item.horizon === 'week' ? 'selected' : ''}>3. This Week &amp; Holds</option>
+              <option value="backlog" ${item.horizon === 'backlog' ? 'selected' : ''}>4. Backlog / Ideas</option>
+            </select>
+          </div>
+
+          <div>
+            <label style="font-size:11px;font-weight:800;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.05em">Priority Level</label>
+            <select id="wb-priority" class="roster-field" style="margin-top:4px;width:100%">
+              <option value="p1" ${item.priority === 'p1' ? 'selected' : ''}>P1 · Critical</option>
+              <option value="p2" ${item.priority === 'p2' ? 'selected' : ''}>P2 · High</option>
+              <option value="p3" ${(!item.priority || item.priority === 'p3') ? 'selected' : ''}>P3 · Normal</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="roster-form-grid-2">
+          <div>
+            <label style="font-size:11px;font-weight:800;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.05em">Cluster</label>
+            <select id="wb-cluster" class="roster-field" style="margin-top:4px;width:100%">
+              ${CLUSTERS.map(
+                (c) => `<option value="${c.id}" ${item.category === c.id ? 'selected' : ''}>${esc(c.label)}</option>`
+              ).join('')}
+            </select>
+          </div>
+
+          <div>
+            <label style="font-size:11px;font-weight:800;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.05em">Business Unit</label>
+            <select id="wb-bu" class="roster-field" style="margin-top:4px;width:100%">
+              <option value="">Personal / General</option>
+              ${BHFIRMS_BUS.map(
+                (b) => `<option value="${b.id}" ${item.buId === b.id ? 'selected' : ''}>${esc(b.short)} — ${esc(b.label.replace(/^[^\s]+\s*/, ''))}</option>`
+              ).join('')}
+            </select>
+          </div>
+        </div>
+
+        <div class="roster-form-grid-2">
+          <div>
+            <label style="font-size:11px;font-weight:800;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.05em">Assignee (@Staff)</label>
+            <input type="text" id="wb-assignee" class="roster-field" value="${esc(item.assigneeName || '')}" placeholder="Unassigned (or type name)" style="margin-top:4px;width:100%">
+          </div>
+
+          <div>
+            <label style="font-size:11px;font-weight:800;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.05em">Target / Alarm Date</label>
+            <input type="datetime-local" id="wb-due-dt" class="roster-field" value="${esc(dtLocalVal)}" style="margin-top:4px;width:100%">
+          </div>
+        </div>
+
+        ${
+          state.teamRoster.length > 0
+            ? `
+          <div class="horiz-pill-strip">
+            <span style="font-size:10.5px;color:var(--text-muted);flex-shrink:0">Quick Pick:</span>
+            ${state.teamRoster
+              .map(
+                (m) => `
+              <button type="button" class="mini-chip" data-wb-pick-person="${esc(m.name)}" data-wb-pick-bu="${esc(m.bu || '')}">
+                👤 ${esc(m.name)}
+              </button>
+            `
+              )
+              .join('')}
+          </div>
+        `
+            : ''
+        }
+
+        <div>
+          <label style="font-size:11px;font-weight:800;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.05em">Instructions &amp; Context Notes</label>
+          <textarea id="wb-notes" class="roster-field" rows="2" placeholder="Add context, links, account numbers, or delegation instructions…" style="margin-top:4px;width:100%">${esc(item.notes || '')}</textarea>
+        </div>
+
+        <div class="checklist-drawer-box">
+          <div style="font-size:11px;font-weight:800;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.05em">
+            Deliverable Checklist (${doneSteps}/${steps.length} completed)
+          </div>
+          ${steps
+            .map(
+              (st) => `
+            <div class="checklist-step-row ${st.done ? 'done' : ''}">
+              <button type="button" class="checklist-step-check" data-act="toggle-step" data-id="${esc(item.id)}" data-step-id="${esc(st.id)}">${st.done ? '✓' : ''}</button>
+              <span style="flex:1">${esc(st.text)}</span>
+              <button type="button" class="mini-chip" data-act="delete-step" data-id="${esc(item.id)}" data-step-id="${esc(st.id)}" style="padding:1px 6px;font-size:10px">✕</button>
+            </div>
+          `
+            )
+            .join('')}
+          <div style="display:flex;gap:6px;margin-top:4px">
+            <input type="text" class="bento-inline-input" data-step-input-for="${esc(item.id)}" placeholder="+ Add deliverable step…">
+            <button type="button" class="bento-inline-btn" data-act="add-step" data-id="${esc(item.id)}">+ Add Step</button>
+          </div>
+        </div>
+
+        <div class="roster-form-actions">
+          <button type="submit" class="delegate-btn-assign primary" data-wb-submit="save">✓ Save Changes</button>
+          <button type="submit" class="delegate-btn-wa" data-wb-submit="whatsapp">📲 Save &amp; Send WhatsApp</button>
+          <button type="button" class="t-act-btn danger" data-act="delete" data-id="${esc(item.id)}">✕ Delete</button>
+        </div>
+      </form>
+    `;
+
+    backdrop.hidden = false;
   }
 
   function openNotificationCenterSheet(preserveViewedSnapshot = false) {
@@ -4941,6 +6366,9 @@
     setBadge('dock-badge-planning', active.length);
     setBadge('dock-badge-tasks', active.length);
     setBadge('dock-badge-delegated', delCnt);
+    setBadge('top-badge-planning', active.length);
+    setBadge('top-badge-tasks', active.length);
+    setBadge('top-badge-delegated', delCnt);
   }
 
   function normalizeCommandTab(rawTab) {
@@ -4958,7 +6386,7 @@
     document.documentElement.setAttribute('data-theme', state.theme);
     const metaTheme = document.getElementById('meta-theme-color');
     if (metaTheme) {
-      metaTheme.setAttribute('content', state.theme === 'light' ? '#F8F6F1' : '#0B162C');
+      metaTheme.setAttribute('content', state.theme === 'light' ? '#F6F4EF' : '#09101E');
     }
     renderHudRibbon();
     renderLiveAdvisorDrawer();
@@ -4970,7 +6398,7 @@
       v.hidden = !isMatch;
       v.classList.toggle('active', isMatch);
     }
-    for (const b of document.querySelectorAll('.cmd-dock-btn')) {
+    for (const b of document.querySelectorAll('.cmd-dock-btn, .hud-nav-btn')) {
       b.classList.toggle('active', b.getAttribute('data-tab') === state.activeTab);
     }
 
@@ -4982,6 +6410,8 @@
 
     if (state.openClusterSheetId && !document.getElementById('sheet-backdrop')?.hidden) {
       openClusterSheet(state.openClusterSheetId);
+    } else if (state.openTaskWorkbenchId && state.openSheetKind === 'workbench' && !document.getElementById('sheet-backdrop')?.hidden) {
+      openTaskWorkbenchSheet(state.openTaskWorkbenchId);
     }
   }
 
@@ -5010,7 +6440,7 @@
     staffRoot.innerHTML = `
       <div class="staff-card">
         <div style="display:flex;align-items:center;gap:10px">
-          <img src="icon.svg" alt="BHFIRMS" style="width:34px;height:34px;border-radius:9px">
+          <img src="icon.svg" alt="BHFIRMS" style="width:34px;height:34px;border-radius:8px">
           <div>
             <div style="font-size:11px;font-weight:800;letter-spacing:0.06em;color:var(--brass);text-transform:uppercase">BHFIRMS Executive Task Portal</div>
             <div style="font-size:13px;color:var(--text-secondary)">Loading assigned task…</div>
@@ -5028,7 +6458,6 @@
       const data = await res.json();
       let taskObj = res.ok && data?.ok && data?.task ? data.task : null;
       if (!taskObj) {
-        // Fallback: check local state if opened on the same origin before cloud sync finishes
         try {
           const loc = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
           const found = (loc?.reminders || []).find((r) => r.id === taskId && r.taskToken === token);
@@ -5040,6 +6469,9 @@
               assigneeName: found.assigneeName || 'Team',
               assigneeBu: found.buId || '',
               subTag: found.subTag || '',
+              priority: found.priority || 'p3',
+              notes: found.notes || '',
+              checklist: Array.isArray(found.checklist) ? found.checklist : [],
               dueAt: found.dueAt || found.matureAt || 0,
               delegationStatus: found.delegationStatus || 'sent',
               staffNote: found.staffNote || ''
@@ -5067,33 +6499,66 @@
               hour: '2-digit',
               minute: '2-digit'
             })
-          : 'As soon as possible';
+          : 'Today / As soon as possible';
+        const steps = Array.isArray(t.checklist) ? t.checklist : [];
 
         staffRoot.innerHTML = `
           <div class="staff-card">
             <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
               <div style="display:flex;align-items:center;gap:10px">
-                <img src="icon.svg" alt="BHFIRMS" style="width:34px;height:34px;border-radius:9px">
+                <img src="icon.svg" alt="BHFIRMS" style="width:34px;height:34px;border-radius:8px">
                 <div>
                   <div style="font-size:10.5px;font-weight:800;letter-spacing:0.06em;color:var(--brass);text-transform:uppercase">BHFIRMS · Assigned by Hussein Bdeir</div>
                   <div style="font-size:13px;font-weight:700">👤 Assigned to: ${esc(t.assigneeName || 'Team')}</div>
                 </div>
               </div>
-              ${t.subTag ? `<span class="t-pill">${esc(t.subTag)}</span>` : ''}
+              <div style="display:flex;gap:4px">
+                ${t.priority === 'p1' ? `<span class="t-pill p1">P1 CRITICAL</span>` : t.priority === 'p2' ? `<span class="t-pill p2">P2 HIGH</span>` : ''}
+                ${t.subTag ? `<span class="t-pill">${esc(t.subTag)}</span>` : ''}
+              </div>
             </div>
 
-            <div style="padding:14px;border-radius:12px;background:var(--bg-ink);border:1px solid var(--border-subtle)">
+            <div style="padding:14px;border-radius:10px;background:var(--bg-ink);border:1px solid var(--border-subtle)">
               <div style="font-size:16px;font-weight:800;line-height:1.4">${esc(t.title)}</div>
               <div style="margin-top:8px;font-size:12px;color:var(--text-secondary)">⏰ Target: <strong>${esc(targetStr)}</strong></div>
+              ${
+                t.notes
+                  ? `<div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border-subtle);font-size:12.5px;color:var(--text-secondary)">📋 <strong>Instructions:</strong> ${esc(
+                      t.notes
+                    )}</div>`
+                  : ''
+              }
             </div>
 
+            ${
+              steps.length > 0
+                ? `
+              <div class="checklist-drawer-box">
+                <div style="font-size:11px;font-weight:800;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.05em">
+                  Deliverable Steps (Tap to check off)
+                </div>
+                ${steps
+                  .map(
+                    (s, idx) => `
+                  <label class="checklist-step-row ${s.done ? 'done' : ''}" style="cursor:pointer">
+                    <input type="checkbox" data-staff-step-idx="${idx}" ${s.done ? 'checked' : ''} style="accent-color:var(--emerald)">
+                    <span>${esc(s.text)}</span>
+                  </label>
+                `
+                  )
+                  .join('')}
+              </div>
+            `
+                : ''
+            }
+
             <div style="display:flex;flex-direction:column;gap:6px">
-              <label style="font-size:11.5px;font-weight:700;color:var(--text-secondary)">Optional Update Note / Completion Details:</label>
+              <label style="font-size:11.5px;font-weight:700;color:var(--text-secondary)">Update Note / Completion Details:</label>
               <textarea
                 id="staff-note-input"
                 rows="2"
                 placeholder="Add a quick note (e.g. Done, pressure checked at 14 bar)…"
-                style="padding:9px 11px;border-radius:10px;background:var(--bg-ink);border:1px solid var(--border-subtle);font-size:13px"
+                style="padding:9px 11px;border-radius:8px;background:var(--bg-ink);border:1px solid var(--border-subtle);font-size:13px"
               >${esc(t.staffNote || '')}</textarea>
             </div>
 
@@ -5106,6 +6571,10 @@
                 <span>⚙️ Working On It</span>
                 <span>${st === 'working' ? '✓ Current' : 'Tap'}</span>
               </button>
+              <button type="button" class="staff-status-btn ${st === 'blocked' ? 'active-seen' : ''}" data-staff-status="blocked">
+                <span>⚠️ Need Input / Blocked</span>
+                <span>${st === 'blocked' ? '✓ Current' : 'Tap'}</span>
+              </button>
               <button type="button" class="staff-status-btn ${st === 'done' ? 'active-done' : ''}" data-staff-status="done">
                 <span>✅ Completed</span>
                 <span>${st === 'done' ? '✓ Notified Hussein' : 'Tap to Complete'}</span>
@@ -5116,10 +6585,25 @@
           </div>
         `;
 
+        staffRoot.querySelectorAll('[data-staff-step-idx]').forEach((cb) => {
+          cb.addEventListener('change', () => {
+            const idx = Number(cb.getAttribute('data-staff-step-idx'));
+            if (Array.isArray(taskObj.checklist) && taskObj.checklist[idx]) {
+              taskObj.checklist[idx].done = cb.checked;
+            }
+          });
+        });
+
         staffRoot.querySelectorAll('[data-staff-status]').forEach((btn) => {
           btn.addEventListener('click', async () => {
             const newStatus = btn.getAttribute('data-staff-status');
-            const noteVal = document.getElementById('staff-note-input')?.value?.trim() || '';
+            let noteVal = document.getElementById('staff-note-input')?.value?.trim() || '';
+            if (Array.isArray(taskObj.checklist) && taskObj.checklist.length > 0) {
+              const doneCnt = taskObj.checklist.filter((s) => s.done).length;
+              const prefix = `[${doneCnt}/${taskObj.checklist.length} steps]`;
+              noteVal = noteVal.replace(/^\[\d+\/\d+\s+steps\]\s*/i, '').trim();
+              noteVal = noteVal ? `${prefix} ${noteVal}` : prefix;
+            }
             const fb = document.getElementById('staff-feedback-msg');
             if (fb) fb.textContent = 'Saving status update…';
             try {
@@ -5141,13 +6625,13 @@
                 const fb2 = document.getElementById('staff-feedback-msg');
                 if (fb2) fb2.textContent = '✓ Status updated and notified Hussein Bdeir on Planner!';
 
-                // Also dispatch real-time status-specific Web Push (Seen / Working / Completed + staffNote) to all armed Planner devices
                 const targets = Array.isArray(taskObj.ownerPushTargets) ? taskObj.ownerPushTargets : [];
                 if (targets.length > 0 && !(newStatus === 'done' && taskObj.pushOnDone && !noteVal)) {
                   const who = taskObj.assigneeName || 'Team';
                   const stMap = {
                     seen: `👀 ${who} saw task — Planner`,
                     working: `⚙️ ${who} is working on task — Planner`,
+                    blocked: `⚠️ ${who} needs input on task — Planner`,
                     done: `✅ ${who} completed task — Planner`
                   };
                   const pushPayload = {
@@ -5157,7 +6641,7 @@
                     tab: 'delegated',
                     taskId,
                     url: `./?tab=delegated&taskId=${encodeURIComponent(taskId)}`,
-                    requireInteraction: newStatus === 'done'
+                    requireInteraction: newStatus === 'done' || newStatus === 'blocked'
                   };
                   for (const tgt of targets) {
                     if (!tgt || !tgt.endpoint || !tgt.vapid || !tgt.keys) continue;
@@ -5259,10 +6743,26 @@
       openNotificationCenterSheet();
     });
 
-    // Capture Bar input & submit
+    // Capture Bar input, Horizon/Priority cyclers & submit
     const capInp = document.getElementById('capture-input');
     capInp?.addEventListener('input', () => {
       state.draft.text = capInp.value;
+      renderLiveAdvisorDrawer();
+    });
+
+    document.getElementById('btn-draft-horizon')?.addEventListener('click', () => {
+      const order = ['auto', 'today', 'tomorrow', 'week', 'backlog'];
+      const cur = state.draft.horizon || 'auto';
+      const next = order[(order.indexOf(cur) + 1) % order.length];
+      state.draft.horizon = next;
+      renderLiveAdvisorDrawer();
+    });
+
+    document.getElementById('btn-draft-priority')?.addEventListener('click', () => {
+      const order = ['', 'p1', 'p2', 'p3'];
+      const cur = state.draft.priority || '';
+      const next = order[(order.indexOf(cur) + 1) % order.length];
+      state.draft.priority = next;
       renderLiveAdvisorDrawer();
     });
 
@@ -5289,8 +6789,30 @@
       showToast('Cleared assignee');
     });
 
-    // Live Advisor Drawer clicks
-    document.getElementById('live-advisor-drawer')?.addEventListener('click', (e) => {
+    // Live Advisor Drawer clicks & inputs
+    const advDrawer = document.getElementById('live-advisor-drawer');
+    advDrawer?.addEventListener('input', (e) => {
+      if (e.target.id === 'draft-steps-input') {
+        state.draft.checklistRaw = e.target.value;
+      } else if (e.target.id === 'draft-notes-input') {
+        state.draft.notes = e.target.value;
+      }
+    });
+
+    advDrawer?.addEventListener('click', (e) => {
+      const hChip = e.target.closest('[data-horizon-chip]');
+      if (hChip) {
+        state.draft.horizon = hChip.getAttribute('data-horizon-chip') || 'auto';
+        renderLiveAdvisorDrawer();
+        return;
+      }
+      const pChip = e.target.closest('[data-priority-chip]');
+      if (pChip) {
+        const pVal = pChip.getAttribute('data-priority-chip') || '';
+        state.draft.priority = state.draft.priority === pVal ? '' : pVal;
+        renderLiveAdvisorDrawer();
+        return;
+      }
       const wChip = e.target.closest('[data-wait-chip]');
       if (wChip) {
         state.draft.waitChoice = wChip.getAttribute('data-wait-chip');
@@ -5308,8 +6830,8 @@
       }
     });
 
-    // Bottom Dock Tab Navigation
-    document.getElementById('cmd-bottom-dock')?.addEventListener('click', (e) => {
+    // Shared Tab Switcher (Desktop Header Nav + Mobile Bottom Dock)
+    const handleTabNavClick = (e) => {
       const btn = e.target.closest('[data-tab]');
       if (!btn) return;
       state.activeTab = normalizeCommandTab(btn.getAttribute('data-tab'));
@@ -5319,9 +6841,11 @@
         markNotificationsChecked((n) => n && n.tab === 'score');
       }
       renderAll();
-    });
+    };
+    document.getElementById('cmd-bottom-dock')?.addEventListener('click', handleTabNavClick);
+    document.getElementById('hud-desktop-nav')?.addEventListener('click', handleTabNavClick);
 
-    // Shared Prayer Controls handler (used in #view-prayers and optional sheet)
+    // Shared Prayer Controls handler
     const handlePrayerControlClick = async (e) => {
       if (e.target.closest('#btn-prayer-master-toggle')) {
         const nextEnabled = !state.prayerConfig.enabled;
@@ -5411,7 +6935,7 @@
       return false;
     };
 
-    const handleCustomLocSubmit = (e) => {
+    const handleStageFormSubmit = async (e) => {
       if (e.target.id === 'prayer-custom-loc-form') {
         e.preventDefault();
         const label = document.getElementById('prayer-loc-label')?.value?.trim() || 'Custom Location';
@@ -5432,6 +6956,182 @@
         showToast(`📍 Saved custom location: ${label} (${lat.toFixed(3)}°, ${lng.toFixed(3)}°)`);
         return true;
       }
+
+      const inlineClusterForm = e.target.closest('[data-inline-cluster-form]');
+      if (inlineClusterForm) {
+        e.preventDefault();
+        const cId = inlineClusterForm.getAttribute('data-inline-cluster-form') || 'work';
+        const inp = inlineClusterForm.querySelector('input');
+        const val = inp?.value?.trim() || '';
+        if (val) {
+          if (inp) inp.value = '';
+          await addQuickInlineTask({
+            title: val,
+            clusterId: cId,
+            horizon: cId === 'ideas' || cId === 'want_to_do' ? 'backlog' : 'today'
+          });
+        }
+        return true;
+      }
+
+      const inlineHorizonForm = e.target.closest('[data-inline-horizon-form]');
+      if (inlineHorizonForm) {
+        e.preventDefault();
+        const hId = inlineHorizonForm.getAttribute('data-inline-horizon-form') || 'today';
+        const inp = inlineHorizonForm.querySelector('input');
+        const val = inp?.value?.trim() || '';
+        if (val) {
+          if (inp) inp.value = '';
+          await addQuickInlineTask({
+            title: val,
+            horizon: hId
+          });
+        }
+        return true;
+      }
+
+      const inlineBuForm = e.target.closest('[data-inline-bu-form]');
+      if (inlineBuForm) {
+        e.preventDefault();
+        const bId = inlineBuForm.getAttribute('data-inline-bu-form') || '';
+        const inp = inlineBuForm.querySelector('input');
+        const val = inp?.value?.trim() || '';
+        if (val) {
+          if (inp) inp.value = '';
+          await addQuickInlineTask({
+            title: val,
+            buId: bId === 'personal' ? '' : bId,
+            clusterId: bId === 'personal' ? 'family' : 'work',
+            horizon: 'today'
+          });
+        }
+        return true;
+      }
+
+      const inlinePersonForm = e.target.closest('[data-inline-person-form]');
+      if (inlinePersonForm) {
+        e.preventDefault();
+        const personName = inlinePersonForm.getAttribute('data-inline-person-form') || '';
+        const personBu = inlinePersonForm.getAttribute('data-inline-person-bu') || '';
+        const inp = inlinePersonForm.querySelector('input');
+        const val = inp?.value?.trim() || '';
+        if (val && personName) {
+          if (inp) inp.value = '';
+          await addQuickInlineTask({
+            title: val,
+            assigneeName: personName,
+            buId: personBu,
+            clusterId: 'people',
+            forceDelegated: true,
+            horizon: 'today'
+          });
+        }
+        return true;
+      }
+
+      if (e.target.id === 'del-studio-form') {
+        e.preventDefault();
+        const person = document.getElementById('del-studio-person')?.value?.trim() || '';
+        const title = document.getElementById('del-studio-title')?.value?.trim() || '';
+        const buId = document.getElementById('del-studio-bu')?.value || '';
+        const priority = document.getElementById('del-studio-priority')?.value || 'p2';
+        const waitChoice = document.getElementById('del-studio-wait')?.value || 'today';
+        const stepsRaw = document.getElementById('del-studio-steps')?.value?.trim() || '';
+        const subAct = e.submitter?.getAttribute?.('data-studio-submit') || 'assign';
+        if (!person || !title) {
+          showToast('Enter both Assignee and Task Title');
+          return true;
+        }
+        state.studioAssigneeName = person;
+        state.studioAssigneeBu = buId;
+        await addQuickInlineTask({
+          title,
+          assigneeName: person,
+          buId,
+          priority,
+          waitChoice,
+          checklistRaw: stepsRaw,
+          clusterId: 'people',
+          forceDelegated: true,
+          horizon: 'today',
+          sendWhatsApp: subAct === 'whatsapp'
+        });
+        const tInp = document.getElementById('del-studio-title');
+        const sInp = document.getElementById('del-studio-steps');
+        if (tInp) tInp.value = '';
+        if (sInp) sInp.value = '';
+        return true;
+      }
+
+      if (e.target.id === 'workbench-save-form') {
+        e.preventDefault();
+        const taskId = document.getElementById('wb-task-id')?.value || '';
+        const item = state.reminders.find((r) => r.id === taskId);
+        if (!item) return true;
+
+        const newTitle = document.getElementById('wb-title')?.value?.trim() || item.title;
+        const newHorizon = document.getElementById('wb-horizon')?.value || 'today';
+        const newPriority = document.getElementById('wb-priority')?.value || 'p3';
+        const newCluster = document.getElementById('wb-cluster')?.value || item.category;
+        const newBu = document.getElementById('wb-bu')?.value || '';
+        const newAssignee = document.getElementById('wb-assignee')?.value?.trim() || '';
+        const newDueDt = document.getElementById('wb-due-dt')?.value || '';
+        const newNotes = document.getElementById('wb-notes')?.value?.trim() || '';
+        const subAct = e.submitter?.getAttribute?.('data-wb-submit') || 'save';
+
+        item.title = newTitle;
+        item.horizon = newHorizon;
+        item.priority = newPriority;
+        item.category = newCluster;
+        item.buId = newBu;
+        item.notes = newNotes;
+
+        if (newDueDt) {
+          const parsedMs = new Date(newDueDt).getTime();
+          if (Number.isFinite(parsedMs) && parsedMs > 0) {
+            item.dueAt = parsedMs;
+            if (item.matureAt) item.matureAt = parsedMs;
+          }
+        }
+
+        if (newAssignee) {
+          item.assigneeName = newAssignee;
+          item.isDelegated = true;
+          item.subTag = newAssignee;
+          if (!item.delegationStatus) item.delegationStatus = 'assigned';
+          if (!item.taskToken) item.taskToken = randomToken(12);
+          if (!state.teamRoster.some((m) => m.name.toLowerCase() === newAssignee.toLowerCase())) {
+            state.teamRoster.push({
+              id: `tm_${Date.now().toString(36)}`,
+              name: newAssignee,
+              role: 'Team Member',
+              bu: newBu || 'holding',
+              phone: ''
+            });
+          }
+        } else {
+          item.assigneeName = '';
+          item.assigneeId = '';
+          item.isDelegated = false;
+        }
+
+        item.updatedAt = Date.now();
+        saveLocalState();
+        closeActiveSheet();
+        renderAll();
+        if (item.matureAt || item.dueAt) {
+          scheduleCloudTimerPush(item, null, true).catch(() => {});
+        }
+        syncAll(item).catch(() => {});
+
+        if (subAct === 'whatsapp' && item.isDelegated) {
+          dispatchWhatsAppDelegation(item.id);
+        } else {
+          showToast('✓ Saved task updates');
+        }
+        return true;
+      }
+
       return false;
     };
 
@@ -5446,10 +7146,92 @@
         return;
       }
 
+      const planDateCell = e.target.closest('[data-plan-date]');
+      if (planDateCell) {
+        const dIso = planDateCell.getAttribute('data-plan-date') || 'all';
+        state.selectedPlanDate = state.selectedPlanDate === dIso && dIso !== 'all' ? 'all' : dIso;
+        renderPlanningView();
+        return;
+      }
+
+      if (e.target.closest('#btn-auto-plan-today')) {
+        autoPlanTodayHorizon();
+        return;
+      }
+
+      if (e.target.closest('#btn-goto-delegation-studio')) {
+        state.activeTab = 'delegated';
+        renderAll();
+        setTimeout(() => document.getElementById('del-studio-title')?.focus(), 40);
+        return;
+      }
+
       const planModeBtn = e.target.closest('[data-planning-mode]');
       if (planModeBtn) {
         state.planningMode = planModeBtn.getAttribute('data-planning-mode') || 'radar';
         renderPlanningView();
+        return;
+      }
+
+      const delViewModeBtn = e.target.closest('[data-del-view-mode]');
+      if (delViewModeBtn) {
+        state.delegatedViewMode = delViewModeBtn.getAttribute('data-del-view-mode') || 'pipeline';
+        renderDelegatedView();
+        return;
+      }
+
+      const studioPickPerson = e.target.closest('[data-studio-pick-person]');
+      if (studioPickPerson) {
+        const pName = studioPickPerson.getAttribute('data-studio-pick-person') || '';
+        const pBu = studioPickPerson.getAttribute('data-studio-pick-bu') || '';
+        state.studioAssigneeName = pName;
+        if (pBu) state.studioAssigneeBu = pBu;
+        const pInp = document.getElementById('del-studio-person');
+        const bSel = document.getElementById('del-studio-bu');
+        if (pInp) pInp.value = pName;
+        if (bSel && pBu) bSel.value = pBu;
+        document.querySelectorAll('[data-studio-pick-person]').forEach((b) => {
+          b.classList.toggle('active', b.getAttribute('data-studio-pick-person') === pName);
+        });
+        document.getElementById('del-studio-title')?.focus();
+        return;
+      }
+
+      if (e.target.closest('#btn-quick-add-person')) {
+        openTeamRosterSheet({ showAddForm: true, manageMode: false });
+        return;
+      }
+
+      const wbPickPerson = e.target.closest('[data-wb-pick-person]');
+      if (wbPickPerson) {
+        const pName = wbPickPerson.getAttribute('data-wb-pick-person') || '';
+        const pBu = wbPickPerson.getAttribute('data-wb-pick-bu') || '';
+        const aInp = document.getElementById('wb-assignee');
+        const bSel = document.getElementById('wb-bu');
+        if (aInp) aInp.value = pName;
+        if (bSel && pBu) bSel.value = pBu;
+        return;
+      }
+
+      const tplChip = e.target.closest('[data-template-cluster]');
+      if (tplChip) {
+        e.stopPropagation();
+        const cId = tplChip.getAttribute('data-template-cluster') || 'work';
+        const tplText = tplChip.getAttribute('data-template-text') || '';
+        const cardForm = document.querySelector(`[data-inline-cluster-form="${cId}"] input`);
+        if (cardForm) {
+          cardForm.value = tplText;
+          cardForm.focus();
+        } else {
+          state.draft.text = tplText;
+          state.draft.clusterOverride = cId;
+          const cap = document.getElementById('capture-input');
+          if (cap) {
+            cap.value = tplText;
+            cap.focus();
+          }
+          renderLiveAdvisorDrawer();
+        }
         return;
       }
 
@@ -5472,6 +7254,12 @@
       if (actBtn) {
         e.stopPropagation();
         const act = actBtn.getAttribute('data-act');
+        if (act === 'person-digest') {
+          const person = actBtn.getAttribute('data-person') || '';
+          dispatchPersonDigestWhatsApp(person);
+          return;
+        }
+
         const id = actBtn.getAttribute('data-id');
         if (id) {
           markNotificationsChecked((n) => n && n.taskId === id);
@@ -5479,6 +7267,86 @@
         const item = state.reminders.find((r) => r.id === id);
         if (!item) return;
 
+        if (act === 'open-workbench') {
+          openTaskWorkbenchSheet(item.id);
+          return;
+        }
+        if (act === 'set-horizon') {
+          const hVal = actBtn.getAttribute('data-horizon') || 'today';
+          item.horizon = hVal;
+          if (hVal === 'today' && !item.dueAt && !item.matureAt) {
+            const eod = new Date();
+            eod.setHours(18, 0, 0, 0);
+            if (eod.getTime() <= Date.now()) eod.setTime(Date.now() + 2 * 3600000);
+            item.dueAt = eod.getTime();
+          } else if (hVal === 'tomorrow') {
+            const tmrw = new Date(Date.now() + 86400000);
+            tmrw.setHours(10, 0, 0, 0);
+            item.dueAt = tmrw.getTime();
+          }
+          item.updatedAt = Date.now();
+          saveLocalState();
+          renderAll();
+          syncAll().catch(() => {});
+          showToast(`Moved to ${hVal.toUpperCase()} horizon`);
+          return;
+        }
+        if (act === 'set-del-stage') {
+          const stKey = actBtn.getAttribute('data-stage') || 'assigned';
+          item.delegationStatus = stKey;
+          item.isDelegated = true;
+          item.ownerStatusAt = Date.now();
+          item.updatedAt = Date.now();
+          saveLocalState();
+          renderAll();
+          syncAll(item).catch(() => {});
+          showToast(`Updated ${item.assigneeName || 'task'} stage → ${stKey.toUpperCase()}`);
+          return;
+        }
+        if (act === 'toggle-step') {
+          const stepId = actBtn.getAttribute('data-step-id');
+          if (Array.isArray(item.checklist)) {
+            const st = item.checklist.find((s) => s.id === stepId);
+            if (st) {
+              st.done = !st.done;
+              item.updatedAt = Date.now();
+              saveLocalState();
+              renderAll();
+              syncAll(item).catch(() => {});
+            }
+          }
+          return;
+        }
+        if (act === 'delete-step') {
+          const stepId = actBtn.getAttribute('data-step-id');
+          if (Array.isArray(item.checklist)) {
+            item.checklist = item.checklist.filter((s) => s.id !== stepId);
+            item.updatedAt = Date.now();
+            saveLocalState();
+            renderAll();
+            syncAll(item).catch(() => {});
+          }
+          return;
+        }
+        if (act === 'add-step') {
+          const container = actBtn.parentElement;
+          const inp = container?.querySelector(`[data-step-input-for="${item.id}"]`);
+          const txt = inp?.value?.trim() || '';
+          if (txt) {
+            if (!Array.isArray(item.checklist)) item.checklist = [];
+            item.checklist.push({
+              id: `st_${Date.now().toString(36)}_${item.checklist.length}`,
+              text: txt,
+              done: false
+            });
+            if (inp) inp.value = '';
+            item.updatedAt = Date.now();
+            saveLocalState();
+            renderAll();
+            syncAll(item).catch(() => {});
+          }
+          return;
+        }
         if (act === 'toggle-done') {
           if (!item.completed && (item.recur === 'daily' || item.recur === 'weekly')) {
             const deltaMs = item.recur === 'weekly' ? 7 * 86400000 : 86400000;
@@ -5547,12 +7415,13 @@
         if (act === 'release-now') {
           item.matureAt = Date.now() - 1000;
           item.dueAt = Date.now() - 1000;
+          item.horizon = 'today';
           item.updatedAt = Date.now();
           saveLocalState();
           renderAll();
           cancelCloudTimerPush(item.id).catch(() => {});
           syncAll().catch(() => {});
-          showToast('🔓 Marked Ready Now');
+          showToast('Marked Ready Now');
           return;
         }
         if (act === 'move-cluster') {
@@ -5563,7 +7432,7 @@
           saveLocalState();
           renderAll();
           syncAll().catch(() => {});
-          showToast(`Moved to ${next.icon} ${next.shortLabel}`);
+          showToast(`Moved to ${next.shortLabel}`);
           return;
         }
         if (act === 'delete') {
@@ -5571,6 +7440,9 @@
             state.deletedIds.push(id);
           }
           state.reminders = state.reminders.filter((r) => r.id !== id);
+          if (state.openTaskWorkbenchId === id) {
+            closeActiveSheet();
+          }
           saveLocalState();
           renderAll();
           cancelCloudTimerPush(id).catch(() => {});
@@ -5580,7 +7452,17 @@
         }
       }
 
-      // Expand / collapse 44px ticker row
+      // Open Task Workbench from micro-row or horizon card click
+      const openWbRow = e.target.closest('[data-open-workbench]');
+      if (openWbRow && !e.target.closest('button') && !e.target.closest('input')) {
+        const wId = openWbRow.getAttribute('data-open-workbench');
+        if (wId) {
+          openTaskWorkbenchSheet(wId);
+          return;
+        }
+      }
+
+      // Expand / collapse ticker row
       const rowToggle = e.target.closest('[data-row-toggle]');
       if (rowToggle) {
         const rId = rowToggle.getAttribute('data-row-toggle');
@@ -5592,7 +7474,7 @@
         return;
       }
 
-      // Open Bento Cluster Sheet
+      // Open Bento Cluster Sheet (when clicking card header or "+N more")
       const tile = e.target.closest('[data-open-cluster]');
       if (tile) {
         openClusterSheet(tile.getAttribute('data-open-cluster'));
@@ -5656,7 +7538,7 @@
     };
 
     document.getElementById('cmd-stage')?.addEventListener('click', handleTaskInteraction);
-    document.getElementById('cmd-stage')?.addEventListener('submit', handleCustomLocSubmit);
+    document.getElementById('cmd-stage')?.addEventListener('submit', handleStageFormSubmit);
 
     // Sheet interactions
     const backdrop = document.getElementById('sheet-backdrop');
@@ -5887,7 +7769,7 @@
     });
 
     document.getElementById('sheet-body')?.addEventListener('submit', async (e) => {
-      if (handleCustomLocSubmit(e)) return;
+      if (await handleStageFormSubmit(e)) return;
       if (e.target.id === 'roster-add-form') {
         e.preventDefault();
         const name = document.getElementById('roster-name')?.value?.trim();
@@ -6055,7 +7937,7 @@
         }
       });
       navigator.serviceWorker
-        .register('./sw.js?v=16', { updateViaCache: 'none' })
+        .register('./sw.js?v=17', { updateViaCache: 'none' })
         .then(async (reg) => {
           reg.update().catch(() => {});
           if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
