@@ -805,7 +805,7 @@
             showLocalSwNotification({
               title,
               body,
-              tag: `cmd-del-live-${rem.id}-${nextStatus}`,
+              tag: `cmd-del-${rem.id}-${nextStatus}`,
               tab: 'delegated',
               taskId: rem.id,
               url: `./?tab=delegated&taskId=${encodeURIComponent(rem.id)}`,
@@ -1409,20 +1409,55 @@
     }
   }
 
+  function computeCmdDeviceId(endpoint) {
+    const ep = String(endpoint || '').trim();
+    if (!ep) return 'cmd_dev';
+    const h = Math.abs(
+      Array.from(ep).reduce((acc, c) => ((acc << 5) - acc + c.charCodeAt(0)) | 0, 0)
+    ).toString(36);
+    return `cmd_dev_${h}`;
+  }
+
+  function getDevicePlatformClass(ua) {
+    const s = String(ua || '').toLowerCase();
+    if (!s) return '';
+    if (s.includes('iphone')) return 'iphone';
+    if (s.includes('ipad')) return 'ipad';
+    if (s.includes('android')) return 'android';
+    if (s.includes('macintosh') || s.includes('mac os')) return 'mac';
+    if (s.includes('windows')) return 'windows';
+    if (s.includes('linux')) return 'linux';
+    return s.slice(0, 32);
+  }
+
   function normalizePushSubEntry(raw) {
     if (!raw || typeof raw !== 'object') return null;
-    const endpoint = String(raw.endpoint || '').trim();
-    const p256dh = String(raw.keys?.p256dh || raw.p256dh || '').trim();
-    const auth = String(raw.keys?.auth || raw.auth || '').trim();
+    const endpoint = String(raw.endpoint || raw.subscription?.endpoint || '').trim();
+    const p256dh = String(raw.keys?.p256dh || raw.p256dh || raw.subscription?.keys?.p256dh || '').trim();
+    const auth = String(raw.keys?.auth || raw.auth || raw.subscription?.keys?.auth || '').trim();
     if (!endpoint || !p256dh || !auth) return null;
-    const id = String(raw.id || endpoint.slice(-16)).replace(/[^a-zA-Z0-9_-]/g, '');
+    const app = String(raw.app || '').trim();
+    const rawId = String(raw.id || '').replace(/[^a-zA-Z0-9_-]/g, '');
+    const isCmd =
+      !app ||
+      app === 'command' ||
+      app === 'planner' ||
+      rawId.startsWith('cmd_') ||
+      rawId.startsWith('pln_');
+    const id = isCmd
+      ? rawId.startsWith('cmd_') || rawId.startsWith('pln_')
+        ? rawId
+        : computeCmdDeviceId(endpoint)
+      : rawId || computeCmdDeviceId(endpoint);
     return {
-      id: id || 'dev',
-      app: String(raw.app || '').trim() || undefined,
+      id: id || 'cmd_dev',
+      app: app || undefined,
       endpoint,
       p256dh,
       auth,
-      keys: { p256dh, auth }
+      keys: { p256dh, auth },
+      ua: String(raw.ua || '').slice(0, 140),
+      updatedAt: String(raw.updatedAt || '')
     };
   }
 
@@ -1440,8 +1475,11 @@
   function getAllActivePushSubscriptions() {
     const byEndpoint = new Map();
     const localSub = normalizePushSubEntry(getSavedPushSub());
+    const localPlatform = getDevicePlatformClass(navigator.userAgent || '');
     if (localSub) {
       localSub.app = 'command';
+      localSub.ua = String(navigator.userAgent || '').slice(0, 140);
+      localSub.updatedAt = new Date().toISOString();
       byEndpoint.set(localSub.endpoint, localSub);
     }
     const cloudList = Array.isArray(state.cloudPushDevices) ? state.cloudPushDevices : [];
@@ -1454,7 +1492,31 @@
         byEndpoint.set(norm.endpoint, norm);
       }
     }
-    return Array.from(byEndpoint.values());
+    // Deduplicate by platform class (e.g. one active iPhone subscription) so rotated endpoints don't double-push
+    const byPlatform = new Map();
+    const unclassed = [];
+    for (const sub of byEndpoint.values()) {
+      const plat = getDevicePlatformClass(sub.ua);
+      if (!plat) {
+        if (localSub && localPlatform && sub.endpoint !== localSub.endpoint) continue;
+        unclassed.push(sub);
+        continue;
+      }
+      if (localSub && plat === localPlatform && sub.endpoint !== localSub.endpoint) {
+        continue;
+      }
+      const prev = byPlatform.get(plat);
+      if (!prev) {
+        byPlatform.set(plat, sub);
+      } else {
+        const prevTs = Date.parse(prev.updatedAt || '') || 0;
+        const curTs = Date.parse(sub.updatedAt || '') || 0;
+        if (curTs >= prevTs) {
+          byPlatform.set(plat, sub);
+        }
+      }
+    }
+    return [...byPlatform.values(), ...unclassed];
   }
 
   const CMD_UNREAD_NOTIFS_URL = './__theo_cmd_unread_notifs.json';
@@ -1967,6 +2029,14 @@
     }
   }
 
+  function loadLocalPrayerSchedMap() {
+    try {
+      return JSON.parse(localStorage.getItem(PRAYER_SCHED_KEY) || '{}') || {};
+    } catch {
+      return {};
+    }
+  }
+
   function saveLocalTaskSchedMap(map) {
     try {
       const entries = Object.entries(map || {}).slice(-180);
@@ -1999,12 +2069,27 @@
     const localMap = loadLocalTaskSchedMap();
     let armedAny = false;
 
+    // Cancel legacy bare timer_${item.id} key if present so it never double-fires alongside canonical timer_${item.id}_${devShort}
+    const legacyBareKey = `timer_${item.id}`;
+    if (localMap[legacyBareKey] || (cloudDocs && cloudDocs[legacyBareKey] && cloudDocs[legacyBareKey].id !== 'cancelled')) {
+      delete localMap[legacyBareKey];
+      fetch(CLOUD_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
+        body: JSON.stringify({
+          key: CLOUD_KEY,
+          op: 'patch',
+          patch: { [legacyBareKey]: { id: 'cancelled', updatedAt: new Date().toISOString() } }
+        })
+      }).catch(() => {});
+    }
+
     for (let i = 0; i < subs.length; i++) {
       const sub = subs[i];
-      const devShort = String(sub.id || sub.endpoint.slice(-10))
+      const devShort = String(sub.id || computeCmdDeviceId(sub.endpoint))
         .replace(/[^a-zA-Z0-9]/g, '')
         .slice(-10);
-      const timerKey = i === 0 ? `timer_${item.id}` : `timer_${item.id}_${devShort}`;
+      const timerKey = `timer_${item.id}_${devShort}`;
       const timerId = `${item.id}_${targetAt}_${devShort}`;
       const alreadyInCloud = cloudDocs && cloudDocs[timerKey]?.id === timerId;
       const alreadyInLocal = !forceReschedule && localMap[timerKey] === timerId;
@@ -2512,9 +2597,12 @@
     } catch {}
   }
 
-  function showLocalSwNotification(payload) {
+  function showLocalSwNotification(payload, opts = {}) {
     try {
       recordNotificationItem(payload, { checked: false });
+      // When Web Push is active on this device, OS banners arrive via the Service Worker push event.
+      // Never fire a second local SW OS notification on top of Web Push unless explicitly forced.
+      if (isThisDevicePushEnabled() && !opts.forceLocal) return;
       if (!('Notification' in window) || Notification.permission !== 'granted') return;
       if (navigator.serviceWorker && navigator.serviceWorker.controller) {
         navigator.serviceWorker.controller.postMessage({
@@ -2528,10 +2616,10 @@
             const isPrayer = Boolean(payload.openPrayer || payload.tab === 'prayers');
             reg.showNotification(payload.title || 'Planner', {
               body: payload.body || '',
-              icon: './icon-192.png?v=18',
-              badge: './icon-192.png?v=18',
+              icon: './icon-192.png?v=19',
+              badge: './icon-192.png?v=19',
               tag: payload.tag || 'theo-cmd-notif',
-              renotify: true,
+              renotify: false,
               requireInteraction: Boolean(payload.requireInteraction),
               data: {
                 url: payload.url || (isPrayer ? './?tab=prayers' : './'),
@@ -2589,7 +2677,7 @@
           showLocalSwNotification({
             title,
             body,
-            tag: `theo-prayer-pre-${todayStr}-${p.id}`,
+            tag: `prayer-${todayStr}-${p.id}-pre`,
             tab: 'prayers',
             openPrayer: true,
             url: './?tab=prayers'
@@ -2609,7 +2697,7 @@
         showLocalSwNotification({
           title,
           body,
-          tag: `theo-prayer-${todayStr}-${p.id}`,
+          tag: `prayer-${todayStr}-${p.id}`,
           tab: 'prayers',
           openPrayer: true,
           url: './?tab=prayers',
@@ -2757,7 +2845,7 @@
                   const bodyB64 = await encryptWebPush(sub.keys, {
                     title: `${p.icon} ${p.label} in ${cfg.preRemindMin} min · ${p.time24}`,
                     body: `${p.arabic} at ${p.time24} in ${cfg.locationName}. ${p.windowNote}`,
-                    tag: `theo-prayer-pre-${iso}-${p.id}`,
+                    tag: `prayer-${iso}-${p.id}-pre`,
                     tab: 'prayers',
                     openPrayer: true,
                     url: './?tab=prayers'
@@ -2805,7 +2893,7 @@
                 const bodyB64 = await encryptWebPush(sub.keys, {
                   title: `🕌 ${p.label} Prayer Time · ${p.time24} (${p.arabic})`,
                   body: `${p.label} has entered in ${cfg.locationName}. ${p.windowNote}. Hayya 'ala Khayr al-'Amal.`,
-                  tag: `theo-prayer-${iso}-${p.id}`,
+                  tag: `prayer-${iso}-${p.id}`,
                   tab: 'prayers',
                   openPrayer: true,
                   url: './?tab=prayers'
@@ -3573,22 +3661,33 @@
         const localSub = normalizePushSubEntry(getSavedPushSub());
         let nextPushRegistry = docs.push_registry;
         if (localSub && localSub.endpoint) {
-          const existingItems = Array.isArray(docs.push_registry?.items)
+          const rawExisting = Array.isArray(docs.push_registry?.items)
             ? [...docs.push_registry.items]
             : [];
-          const idx = existingItems.findIndex(
-            (d) => (d?.endpoint || d?.subscription?.endpoint) === localSub.endpoint
-          );
-          const prevEntry = idx >= 0 ? existingItems[idx] : {};
+          const curUa = String(navigator.userAgent || '').slice(0, 140);
+          const curPlat = getDevicePlatformClass(curUa);
+          const prevEntry =
+            rawExisting.find(
+              (d) => (d?.endpoint || d?.subscription?.endpoint) === localSub.endpoint
+            ) ||
+            rawExisting.find(
+              (d) => isPlannerSubDevice(d) && curPlat && getDevicePlatformClass(d?.ua) === curPlat
+            ) ||
+            {};
+          // Keep all non-Planner entries + Planner entries from other platforms; replace any stale Planner entry for this same platform/endpoint
+          const filteredItems = rawExisting.filter((d) => {
+            if (!d) return false;
+            const ep = d.endpoint || d.subscription?.endpoint || '';
+            if (ep === localSub.endpoint) return false;
+            if (isPlannerSubDevice(d) && curPlat && getDevicePlatformClass(d.ua) === curPlat) {
+              return false;
+            }
+            return true;
+          });
           const slots = await buildPlannerPushSlots(localSub, 5);
           const devEntry = {
             ...prevEntry,
-            id:
-              prevEntry.id && String(prevEntry.id).startsWith('cmd_')
-                ? prevEntry.id
-                : `cmd_dev_${Math.abs(
-                    Array.from(localSub.endpoint).reduce((h, c) => ((h << 5) - h + c.charCodeAt(0)) | 0, 0)
-                  ).toString(36)}`,
+            id: computeCmdDeviceId(localSub.endpoint),
             app: 'command',
             endpoint: localSub.endpoint,
             p256dh: localSub.p256dh,
@@ -3596,17 +3695,18 @@
             keys: localSub.keys,
             prefs: normalizeNotifPrefs(state.notifPrefs),
             slots,
-            ua: String(navigator.userAgent || '').slice(0, 140),
+            armedPrayers: loadLocalPrayerSchedMap(),
+            armedTimers: loadLocalTaskSchedMap(),
+            ua: curUa,
             updatedAt: new Date().toISOString()
           };
-          if (idx >= 0) existingItems[idx] = devEntry;
-          else existingItems.push(devEntry);
-          state.cloudPushDevices = existingItems;
+          filteredItems.push(devEntry);
+          state.cloudPushDevices = filteredItems;
           try {
             localStorage.setItem(CLOUD_PUSH_DEVS_KEY, JSON.stringify(state.cloudPushDevices));
           } catch {}
           nextPushRegistry = {
-            items: existingItems,
+            items: filteredItems,
             updatedAt: new Date().toISOString()
           };
         }
@@ -3622,20 +3722,6 @@
           rem.isDelegated = true;
           if (!rem.taskToken) rem.taskToken = randomToken(12);
           const existing = nextDelMap[rem.id] || {};
-          let pushOnDone = existing.pushOnDone || null;
-          const needsFreshPreSigned =
-            !pushOnDone ||
-            (newlyDelegatedItem && newlyDelegatedItem.id === rem.id) ||
-            Number(pushOnDone.expSec || 0) < nowSec + 2 * 86400;
-          if (needsFreshPreSigned && state.notifPrefs.enabled !== false && state.notifPrefs.delegations !== false) {
-            pushOnDone = await buildPreSignedOwnerPush(
-              `✅ ${rem.assigneeName || 'Team'} completed task — Planner`,
-              `${rem.title} — tap to verify in Planner`,
-              'delegated',
-              rem.id,
-              nowSec + 7 * 86400
-            );
-          }
           nextDelMap[rem.id] = {
             id: rem.id,
             token: rem.taskToken,
@@ -3652,7 +3738,7 @@
             staffNote: rem.staffNote || existing.staffNote || '',
             staffUpdatedAt: rem.staffUpdatedAt || existing.staffUpdatedAt || '',
             ownerPushTargets,
-            pushOnDone
+            pushOnDone: null
           };
         }
 
@@ -7003,16 +7089,19 @@
                     requireInteraction: newStatus === 'done' || newStatus === 'blocked'
                   };
                   for (const tgt of targets) {
-                    if (!tgt || !tgt.endpoint || !tgt.vapid || !tgt.keys) continue;
+                    if (!tgt || !tgt.endpoint || !tgt.keys) continue;
                     try {
+                      const freshVapid = await signVapid(tgt.endpoint).catch(() => tgt.vapid);
+                      if (!freshVapid) continue;
                       const bodyB64 = await encryptWebPush(tgt.keys, pushPayload);
                       await fetch(CLOUD_URL, {
                         method: 'POST',
                         headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
                         body: JSON.stringify({
+                          key: CLOUD_KEY,
                           op: 'push',
                           endpoint: tgt.endpoint,
-                          vapid: tgt.vapid,
+                          vapid: freshVapid,
                           bodyB64,
                           ttl: '14400'
                         })

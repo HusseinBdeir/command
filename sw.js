@@ -1,19 +1,19 @@
-/* Planner — Standalone Executive & Personal PWA for Planning, Tasks, Delegation, 100% Score & Shia Prayer Times (Service Worker v18) */
-const CACHE_NAME = 'bhf-planner-v18';
+/* Planner — Standalone Executive & Personal PWA for Planning, Tasks, Delegation, 100% Score & Shia Prayer Times (Service Worker v19) */
+const CACHE_NAME = 'bhf-planner-v19';
 const NAV_CACHE = 'theo-cmd-nav-handoff-v1';
 const PENDING_NAV_URL = './__theo_cmd_pending_nav.json';
 const UNREAD_NOTIFS_URL = './__theo_cmd_unread_notifs.json';
 const APP_SHELL = [
   './',
   './index.html',
-  './css/command.css?v=18',
-  './js/endpoints.js?v=18',
-  './js/app.js?v=18',
-  './manifest.json?v=18',
-  './icon.svg?v=18',
-  './icon-180.png?v=18',
-  './icon-192.png?v=18',
-  './icon-512.png?v=18'
+  './css/command.css?v=19',
+  './js/endpoints.js?v=19',
+  './js/app.js?v=19',
+  './manifest.json?v=19',
+  './icon.svg?v=19',
+  './icon-180.png?v=19',
+  './icon-192.png?v=19',
+  './icon-512.png?v=19'
 ];
 
 self.addEventListener('install', (event) => {
@@ -79,16 +79,17 @@ function buildCmdDeepLink(d) {
   };
 }
 
-function buildNotifOptions(d) {
+function buildNotifOptions(d, isRepeat = false) {
   const nav = buildCmdDeepLink(d);
   return {
     body: d.body || 'Tap to open Planner.',
-    icon: './icon-192.png?v=17',
-    badge: './icon-192.png?v=17',
+    icon: './icon-192.png?v=19',
+    badge: './icon-192.png?v=19',
     tag: d.tag || 'theo-cmd-notif',
-    renotify: true,
-    requireInteraction: Boolean(d.requireInteraction),
-    vibrate: [180, 80, 180, 80, 260],
+    renotify: !isRepeat,
+    silent: Boolean(isRepeat),
+    requireInteraction: Boolean(d.requireInteraction) && !isRepeat,
+    vibrate: isRepeat ? [] : [180, 80, 180, 80, 260],
     data: nav
   };
 }
@@ -175,6 +176,32 @@ function isCommandClientUrl(rawUrl) {
   }
 }
 
+async function isTagRecentlyDelivered(tag, title = '') {
+  const cleanTag = String(tag || '').trim();
+  const cleanTitle = String(title || '').trim();
+  const now = Date.now();
+  try {
+    if (self.registration && typeof self.registration.getNotifications === 'function') {
+      const active = await self.registration.getNotifications(cleanTag ? { tag: cleanTag } : undefined);
+      if (Array.isArray(active) && active.some((n) => (cleanTag && n.tag === cleanTag) || (cleanTitle && n.title === cleanTitle))) {
+        return true;
+      }
+    }
+  } catch {}
+  try {
+    const existing = await readUnreadNotifsFromCache();
+    return existing.some(
+      (x) =>
+        x &&
+        now - Number(x.ts || 0) < 10 * 60 * 1000 &&
+        ((cleanTag && (x.tag === cleanTag || x.id === cleanTag)) ||
+          (cleanTitle && x.title === cleanTitle && now - Number(x.ts || 0) < 90 * 1000))
+    );
+  } catch {
+    return false;
+  }
+}
+
 self.addEventListener('push', (event) => {
   let d = {};
   if (event.data) {
@@ -187,9 +214,10 @@ self.addEventListener('push', (event) => {
     }
   }
   const title = d.title || 'Planner';
-  const opts = buildNotifOptions(d);
   event.waitUntil(
     (async () => {
+      const isRepeat = await isTagRecentlyDelivered(d.tag, title);
+      const opts = buildNotifOptions(d, isRepeat);
       const { item, unreadCount } = await upsertSwUnreadNotif(d, opts.data);
       const list = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
       list.filter((c) => isCommandClientUrl(c.url)).forEach((c) => {
@@ -202,6 +230,7 @@ self.addEventListener('push', (event) => {
           });
         } catch {}
       });
+      // Always call showNotification on push (never return early on iOS webpushd), coalescing silently if repeat
       await self.registration.showNotification(title, opts);
     })()
   );
@@ -241,12 +270,14 @@ self.addEventListener('message', (event) => {
   }
   if (m.type === 'show-notification') {
     const d = m.payload || {};
-    const opts = buildNotifOptions(d);
     event.waitUntil(
       (async () => {
+        const isRepeat = await isTagRecentlyDelivered(d.tag, d.title);
+        const opts = buildNotifOptions(d, isRepeat);
         if (!m.skipUnread) {
           await upsertSwUnreadNotif(d, opts.data);
         }
+        if (isRepeat) return;
         await self.registration.showNotification(d.title || 'Planner', opts);
       })()
     );
