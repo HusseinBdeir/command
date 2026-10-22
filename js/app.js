@@ -300,6 +300,8 @@
     openTaskWorkbenchId: '',
     openSheetKind: '', // '' | 'cluster' | 'roster' | 'notifications' | 'task'
     sheetOpenedWithUnreadIds: [],
+    recentlyCompletedUntil: {},
+    completedSectionOpen: false,
     rosterSheetOpts: {
       pickForDraft: false,
       existingTaskId: '',
@@ -722,7 +724,7 @@
 
     if (changed) {
       saveLocalState();
-      if (renderAfter) renderAll();
+      if (renderAfter) requestBackgroundRender();
     }
     return changed;
   }
@@ -818,7 +820,7 @@
     }
     if (changed) {
       saveLocalState();
-      renderAll();
+      requestBackgroundRender();
     }
   }
 
@@ -2526,8 +2528,8 @@
             const isPrayer = Boolean(payload.openPrayer || payload.tab === 'prayers');
             reg.showNotification(payload.title || 'Planner', {
               body: payload.body || '',
-              icon: './icon-192.png?v=16',
-              badge: './icon-192.png?v=16',
+              icon: './icon-192.png?v=18',
+              badge: './icon-192.png?v=18',
               tag: payload.tag || 'theo-cmd-notif',
               renotify: true,
               requireInteraction: Boolean(payload.requireInteraction),
@@ -2618,7 +2620,7 @@
 
     if (changed) {
       saveAlertedPrayersSet(alerted);
-      renderAll();
+      requestBackgroundRender();
     }
   }
 
@@ -2700,7 +2702,7 @@
 
     if (changed) {
       saveAlertedTasksSet(alerted);
-      renderAll();
+      requestBackgroundRender();
     }
   }
 
@@ -3045,9 +3047,14 @@
      ADD / UPDATE / DELEGATE TASK ACTIONS
      ============================================================================ */
   async function addTaskFromDraft(sendWhatsAppImmediately = false) {
+    const capDomVal = document.getElementById('capture-input')?.value || '';
+    if (capDomVal && !state.draft.text) {
+      state.draft.text = capDomVal;
+    }
     const rawText = state.draft.text.trim();
     if (!rawText) {
       showToast('Type a task, reminder, wait check, or @Person first');
+      document.getElementById('capture-input')?.focus();
       return;
     }
 
@@ -3147,7 +3154,7 @@
     if (newItem.matureAt || newItem.dueAt) {
       scheduleCloudTimerPush(newItem).catch(() => {});
     }
-    await syncAll(newItem);
+    syncAll(newItem).catch(() => {});
 
     if (sendWhatsAppImmediately && isDelegated) {
       dispatchWhatsAppDelegation(newItem.id);
@@ -3444,15 +3451,24 @@
      CLOUD RELAY & WORKSTATION BRIDGE SYNC
      ============================================================================ */
   async function probeBridge() {
+    const isMobileDevice =
+      /iPhone|iPad|iPod|Android/i.test(navigator.userAgent || '') ||
+      (typeof window !== 'undefined' && window.innerWidth <= 820 && location.port !== String(BRIDGE_PORT));
+    if (isMobileDevice) {
+      state.bridgeOrigin = '';
+      state.syncMode = 'cloud';
+      return '';
+    }
     const origins = [];
     if (location.port === String(BRIDGE_PORT)) {
       origins.push(location.origin);
+    } else {
+      origins.push(`http://127.0.0.1:${BRIDGE_PORT}`);
     }
-    origins.push(`http://127.0.0.1:${BRIDGE_PORT}`, `http://localhost:${BRIDGE_PORT}`);
     for (const orig of origins) {
       try {
         const ctrl = new AbortController();
-        const t = setTimeout(() => ctrl.abort(), 1100);
+        const t = setTimeout(() => ctrl.abort(), 500);
         const r = await fetch(`${orig}/api/ping`, { signal: ctrl.signal });
         clearTimeout(t);
         if (r.ok) {
@@ -3668,7 +3684,7 @@
 
         if (dot) dot.className = state.bridgeOrigin ? 'sync-dot' : 'sync-dot cloud';
         if (lbl) lbl.textContent = state.bridgeOrigin ? 'Bridge+Cloud' : 'Cloud Live';
-        renderAll();
+        requestBackgroundRender();
 
         // Arm exact-second serverless Web Push notifications for upcoming Shia prayers + all active Tasks, Reminders & Wait Timers
         scheduleUpcomingPrayerCloudPushes(docs).catch(() => {});
@@ -3744,9 +3760,13 @@
     const delClearBtn = document.getElementById('btn-clear-assignee');
     const submitBtn = document.getElementById('capture-submit-btn');
     const horBtn = document.getElementById('btn-draft-horizon');
-    const horLbl = document.getElementById('capture-horizon-label');
+    const horLbl =
+      document.getElementById('draft-horizon-label') ||
+      document.getElementById('capture-horizon-label');
     const priBtn = document.getElementById('btn-draft-priority');
-    const priLbl = document.getElementById('capture-priority-label');
+    const priLbl =
+      document.getElementById('draft-priority-label') ||
+      document.getElementById('capture-priority-label');
     if (!drawer) return;
 
     const text = state.draft.text.trim();
@@ -3826,6 +3846,28 @@
       { k: '7d', lbl: '+7d' }
     ];
 
+    const activeEl = document.activeElement;
+    const isTypingInDrawerSubInputs =
+      activeEl &&
+      (activeEl.id === 'draft-steps-input' || activeEl.id === 'draft-notes-input') &&
+      drawer.contains(activeEl);
+
+    if (isTypingInDrawerSubInputs) {
+      drawer.querySelectorAll('[data-horizon-chip]').forEach((b) => {
+        b.classList.toggle('active', b.getAttribute('data-horizon-chip') === curHor);
+      });
+      drawer.querySelectorAll('[data-priority-chip]').forEach((b) => {
+        b.classList.toggle('active', b.getAttribute('data-priority-chip') === effectivePri);
+      });
+      drawer.querySelectorAll('[data-wait-chip]').forEach((b) => {
+        b.classList.toggle('active', b.getAttribute('data-wait-chip') === state.draft.waitChoice);
+      });
+      drawer.querySelectorAll('[data-cluster-chip]').forEach((b) => {
+        b.classList.toggle('active', (b.getAttribute('data-cluster-chip') || '') === (state.draft.clusterOverride || ''));
+      });
+      return;
+    }
+
     drawer.innerHTML = `
       <div class="advisor-top-row">
         <div class="advisor-detected-badges">
@@ -3901,6 +3943,7 @@
         <input
           type="text"
           id="draft-steps-input"
+          enterkeyhint="done"
           value="${esc(state.draft.checklistRaw || '')}"
           placeholder="Sub-steps (optional, separate with | or ; e.g. Verify amount | Save receipt)"
           style="padding:6px 9px;border-radius:6px;background:var(--bg-card);border:1px solid var(--border-subtle);font-size:11.5px;color:var(--text-primary)"
@@ -3908,6 +3951,7 @@
         <input
           type="text"
           id="draft-notes-input"
+          enterkeyhint="done"
           value="${esc(state.draft.notes || '')}"
           placeholder="Instructions or context note (optional)…"
           style="padding:6px 9px;border-radius:6px;background:var(--bg-card);border:1px solid var(--border-subtle);font-size:11.5px;color:var(--text-primary)"
@@ -4030,6 +4074,7 @@
           <input
             type="text"
             class="bento-inline-input"
+            enterkeyhint="done"
             data-step-input-for="${esc(item.id)}"
             placeholder="+ Add deliverable step or checkpoint…"
           >
@@ -4037,6 +4082,21 @@
         </div>
       </div>
     `;
+
+    const completedTimeBadge =
+      item.completed
+        ? `<span class="t-pill matured">✓ Completed${
+            item.completedAt || item.updatedAt
+              ? ` · ${esc(
+                  new Date(Number(item.completedAt || item.updatedAt)).toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric'
+                  })
+                )}`
+              : ''
+          }</span>
+          <button type="button" class="mini-chip" data-act="toggle-done" data-id="${esc(item.id)}" style="padding:2px 7px;font-size:10px" title="Reopen task">↺ Reopen</button>`
+        : '';
 
     const delegationStageOverrideHtml = item.isDelegated
       ? `
@@ -4075,13 +4135,14 @@
           >✓</button>
           <span class="ticker-title">${esc(item.title)}</span>
           <div class="ticker-pills">
+            ${completedTimeBadge}
             ${priBadge}
             ${stepsBadge}
             ${buBadge}
             ${delBadge}
             ${item.amount > 0 ? `<span class="t-pill amt">$${fmtInt(item.amount)}</span>` : ''}
             ${
-              targetAt > 0
+              !item.completed && targetAt > 0
                 ? `<span class="t-pill ${isMatured || item.delegationStatus === 'done' ? 'matured' : 'timer'} tabular">${
                     isMatured ? 'Ready Now' : `${esc(countdown)}`
                   }</span>`
@@ -4218,12 +4279,73 @@
     `;
   }
 
+  function isRecentlyCompleted(r, now = Date.now()) {
+    return Boolean(
+      r &&
+        r.completed &&
+        state.recentlyCompletedUntil &&
+        Number(state.recentlyCompletedUntil[r.id] || 0) > now
+    );
+  }
+
+  function buildCompletedArchiveSectionHtml(completedItems, now = Date.now()) {
+    const sorted = [...(completedItems || [])].sort(
+      (a, b) =>
+        Number(b.completedAt || b.updatedAt || b.createdAt || 0) -
+        Number(a.completedAt || a.updatedAt || a.createdAt || 0)
+    );
+    const isOpen = Boolean(state.completedSectionOpen);
+    return `
+      <div class="completed-archive-card" id="completed-archive-card">
+        <div class="completed-archive-head" data-act="toggle-completed-archive">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <span style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:6px;background:var(--emerald-soft);color:var(--emerald);font-weight:900;font-size:12px">✓</span>
+            <div>
+              <div style="font-size:12.5px;font-weight:800;color:var(--text-primary)">
+                Previously Completed Tasks (${sorted.length})
+              </div>
+              <div style="font-size:11px;color:var(--text-muted)">
+                ${
+                  sorted.length > 0
+                    ? 'Tap to view completed history or ↺ reopen any task'
+                    : 'Tasks you check off are saved here so you can review or reopen them anytime'
+                }
+              </div>
+            </div>
+          </div>
+          <button type="button" class="mini-chip ${isOpen ? 'active' : ''}" data-act="toggle-completed-archive">
+            ${isOpen ? '▲ Hide Completed' : `▼ Show Completed (${sorted.length})`}
+          </button>
+        </div>
+        ${
+          isOpen
+            ? `
+          <div class="completed-archive-body">
+            ${
+              sorted.length > 0
+                ? sorted.map((it) => renderTickerRowHtml(it, now)).join('')
+                : `<div style="padding:18px;text-align:center;color:var(--text-muted);font-size:12px">No completed tasks yet. Check off any task and it will appear here.</div>`
+            }
+          </div>
+        `
+            : ''
+        }
+      </div>
+    `;
+  }
+
   function renderPlanningView() {
     const root = document.getElementById('view-planning');
     if (!root) return;
     const now = Date.now();
     const allActive = state.reminders.filter((r) => !r.completed && !r.deleted);
-    const completed = state.reminders.filter((r) => r.completed && !r.deleted);
+    const completed = state.reminders
+      .filter((r) => r.completed && !r.deleted)
+      .sort(
+        (a, b) =>
+          Number(b.completedAt || b.updatedAt || b.createdAt || 0) -
+          Number(a.completedAt || a.updatedAt || a.createdAt || 0)
+      );
 
     const selDate = state.selectedPlanDate || 'all';
     const baseIso = todayIso();
@@ -4264,6 +4386,9 @@
           <button type="button" class="planning-mode-btn ${state.planningMode === 'clusters' ? 'active' : ''}" data-planning-mode="clusters">
             Register (${active.length})
           </button>
+          <button type="button" class="planning-mode-btn ${state.planningMode === 'completed' ? 'active' : ''}" data-planning-mode="completed">
+            ✓ Completed (${completed.length})
+          </button>
         </div>
         <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
           ${
@@ -4287,6 +4412,38 @@
     `;
 
     const weekStripHtml = buildSevenDayHorizonStripHtml(allActive, now);
+
+    // MODE E: DEDICATED COMPLETED TASKS HISTORY VIEW
+    if (state.planningMode === 'completed') {
+      root.innerHTML = `
+        ${weekStripHtml}
+        ${toolbarHtml}
+        <div class="completed-archive-card" style="margin-top:0">
+          <div class="completed-archive-head" style="cursor:default">
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:6px;background:var(--emerald-soft);color:var(--emerald);font-weight:900;font-size:13px">✓</span>
+              <div>
+                <div style="font-size:13.5px;font-weight:800;color:var(--text-primary)">
+                  Previously Completed Tasks (${completed.length})
+                </div>
+                <div style="font-size:11px;color:var(--text-muted)">
+                  Tap the green ✓ or <strong>↺ Reopen</strong> on any item to move it back to active tasks
+                </div>
+              </div>
+            </div>
+            <button type="button" class="mini-chip" data-planning-mode="radar">← Back to 2×4 Matrix</button>
+          </div>
+          <div class="completed-archive-body" style="max-height:none">
+            ${
+              completed.length > 0
+                ? completed.map((it) => renderTickerRowHtml(it, now)).join('')
+                : `<div style="padding:28px;text-align:center;color:var(--text-muted)">No completed tasks yet. Check off any task in the 2×4 Matrix, Horizon Plan, or Tasks tab and it will be archived here.</div>`
+            }
+          </div>
+        </div>
+      `;
+      return;
+    }
 
     // MODE B: 4-COLUMN EXECUTIVE HORIZON PLAN (Today / Tomorrow / This Week / Backlog)
     if (state.planningMode === 'horizon') {
@@ -4390,7 +4547,7 @@
                 <span class="bento-count ${colItems.length ? 'active' : ''} tabular">${colItems.length}</span>
               </div>
               <form class="bento-inline-form" data-inline-horizon-form="${col.id}" style="padding:6px 10px;border-top:none;border-bottom:1px solid var(--border-subtle)">
-                <input type="text" class="bento-inline-input" placeholder="+ Add to ${esc(col.title.replace(/^[0-9]+\.\s*/, ''))}…" required>
+                <input type="text" class="bento-inline-input" enterkeyhint="done" placeholder="+ Add to ${esc(col.title.replace(/^[0-9]+\.\s*/, ''))}…" required>
                 <button type="submit" class="bento-inline-btn">+ Add</button>
               </form>
               <div class="horizon-col-body">
@@ -4407,6 +4564,7 @@
         <div class="horizon-board-grid">
           ${colsHtml}
         </div>
+        ${buildCompletedArchiveSectionHtml(completed, now)}
       `;
       return;
     }
@@ -4448,7 +4606,7 @@
                 </div>
               </div>
               <form class="bento-inline-form" data-inline-bu-form="${bu.id}" style="padding:6px 10px;border-top:none;border-bottom:1px solid var(--border-subtle)">
-                <input type="text" class="bento-inline-input" placeholder="+ Add task for ${esc(bu.title.split('&')[0].trim())}…" required>
+                <input type="text" class="bento-inline-input" enterkeyhint="done" placeholder="+ Add task for ${esc(bu.title.split('&')[0].trim())}…" required>
                 <button type="submit" class="bento-inline-btn">+ Add</button>
               </form>
               <div class="bu-plan-body">
@@ -4469,6 +4627,7 @@
         <div class="bu-board-grid">
           ${cardsHtml}
         </div>
+        ${buildCompletedArchiveSectionHtml(completed, now)}
       `;
       return;
     }
@@ -4514,6 +4673,9 @@
             <button type="button" class="filter-pill ${state.boardFilter === 'all' ? 'active' : ''}" data-board-filter="all">
               All Active (${active.length})
             </button>
+            <button type="button" class="filter-pill ${state.boardFilter === 'completed' ? 'active' : ''}" data-board-filter="completed">
+              ✓ Completed (${completed.length})
+            </button>
             ${CLUSTERS.map((c) => {
               const cnt = active.filter((r) => (r.category || 'work') === c.id).length;
               return `
@@ -4522,9 +4684,6 @@
                 </button>
               `;
             }).join('')}
-            <button type="button" class="filter-pill ${state.boardFilter === 'completed' ? 'active' : ''}" data-board-filter="completed">
-              ✓ Done (${completed.length})
-            </button>
           </div>
         </div>
         <div class="ticker-list">
@@ -4533,6 +4692,7 @@
             `<div style="padding:28px;text-align:center;color:var(--text-muted)">No items in this cluster filter yet.</div>`
           }
         </div>
+        ${state.boardFilter === 'all' ? buildCompletedArchiveSectionHtml(completed, now) : ''}
       `;
       return;
     }
@@ -4564,12 +4724,38 @@
     `
       : '';
 
-    const isMobileViewport = typeof window !== 'undefined' && window.innerWidth <= 640;
-    const maxPreviewRows = isMobileViewport ? 2 : 4;
+    const isMobileViewport = typeof window !== 'undefined' && window.innerWidth <= 720;
+    const maxPreviewRows = isMobileViewport ? 8 : 5;
 
-    const tilesHtml = CLUSTERS.map((c) => {
-      const items = active.filter((r) => (r.category || 'work') === c.id);
+    // Include items checked within the last 2.2s so checking multiple tasks in a group on iPhone never shifts or collapses the list mid-check
+    const getClusterDisplayItems = (clusterId) =>
+      state.reminders.filter((r) => {
+        if (!r || r.deleted) return false;
+        if ((r.category || 'work') !== clusterId) return false;
+        if (!r.completed) {
+          if (selDate === 'all') return true;
+          const rIso = itemIsoDate(r);
+          if (rIso === selDate) return true;
+          if (selDate === baseIso && !rIso && getEffectiveHorizon(r, now) === 'today') return true;
+          if (selDate === tomorrowIso && !rIso && r.horizon === 'tomorrow') return true;
+          return false;
+        }
+        return isRecentlyCompleted(r, now);
+      });
+
+    const orderedClusters = isMobileViewport
+      ? [...CLUSTERS].sort((a, b) => {
+          const aHas = getClusterDisplayItems(a.id).length > 0 ? 1 : 0;
+          const bHas = getClusterDisplayItems(b.id).length > 0 ? 1 : 0;
+          return bHas - aHas;
+        })
+      : CLUSTERS;
+
+    const tilesHtml = orderedClusters.map((c) => {
+      const items = getClusterDisplayItems(c.id);
+      const activeCount = items.filter((r) => !r.completed).length;
       const maturedCount = items.filter((r) => {
+        if (r.completed) return false;
         const t = Number(r.matureAt || r.dueAt || 0);
         return (t > 0 && now >= t) || r.delegationStatus === 'done';
       }).length;
@@ -4579,39 +4765,42 @@
         .join(' ');
 
       const topRows = items.slice(0, maxPreviewRows).map((it) => {
+        const isChecked = Boolean(it.completed);
         const t = Number(it.matureAt || it.dueAt || 0);
-        const isReady = (t > 0 && now >= t) || it.delegationStatus === 'done';
+        const isReady = !isChecked && ((t > 0 && now >= t) || it.delegationStatus === 'done');
         const steps = Array.isArray(it.checklist) ? it.checklist : [];
         const doneSteps = steps.filter((s) => s.done).length;
         const priDot =
-          it.priority === 'p1'
+          !isChecked && it.priority === 'p1'
             ? `<span style="width:6px;height:6px;border-radius:50%;background:var(--crimson);flex-shrink:0" title="P1 Critical"></span>`
-            : it.priority === 'p2'
+            : !isChecked && it.priority === 'p2'
               ? `<span style="width:6px;height:6px;border-radius:50%;background:var(--amber);flex-shrink:0" title="P2 High"></span>`
               : '';
-        const tagTxt = it.assigneeName
-          ? `${it.assigneeName}`
-          : steps.length > 0
-            ? `${doneSteps}/${steps.length}`
-            : t > 0
-              ? formatCountdown(t, now)
-              : it.subTag
-                ? it.subTag.replace(/^[^\w]+/, '').trim().slice(0, 10)
-                : '';
+        const tagTxt = isChecked
+          ? '✓ Done'
+          : it.assigneeName
+            ? `${it.assigneeName}`
+            : steps.length > 0
+              ? `${doneSteps}/${steps.length}`
+              : t > 0
+                ? formatCountdown(t, now)
+                : it.subTag
+                  ? it.subTag.replace(/^[^\w]+/, '').trim().slice(0, 10)
+                  : '';
         return `
-          <div class="bento-micro-row" data-open-workbench="${esc(it.id)}" title="Click to open Task Workbench">
+          <div class="bento-micro-row ${isChecked ? 'is-checked' : ''}" data-open-workbench="${esc(it.id)}" title="Tap ✓ to complete or tap title to open Task Workbench">
             <button
               type="button"
-              class="bento-micro-check"
+              class="bento-micro-check ${isChecked ? 'checked' : ''}"
               data-act="toggle-done"
               data-id="${esc(it.id)}"
-              title="Complete now"
+              title="${isChecked ? 'Undo complete' : 'Complete now'}"
             >✓</button>
             ${priDot}
             <span class="bento-micro-text">${esc(it.title)}</span>
             ${
               tagTxt
-                ? `<span class="bento-micro-tag ${isReady ? 'matured' : ''} tabular">${esc(tagTxt)}</span>`
+                ? `<span class="bento-micro-tag ${isReady || isChecked ? 'matured' : ''} tabular">${esc(tagTxt)}</span>`
                 : ''
             }
           </div>
@@ -4665,7 +4854,7 @@
                   ? `<span class="bento-count matured tabular">${maturedCount} ready</span>`
                   : ''
               }
-              <span class="bento-count ${items.length ? 'active' : ''} tabular">${items.length}</span>
+              <span class="bento-count ${activeCount ? 'active' : ''} tabular">${activeCount}</span>
             </div>
           </div>
 
@@ -4682,6 +4871,7 @@
             <input
               type="text"
               class="bento-inline-input"
+              enterkeyhint="done"
               name="inlineTitle"
               placeholder="+ Add to ${esc(c.shortLabel)}…"
               autocomplete="off"
@@ -4699,6 +4889,7 @@
       <div class="bento-radar-grid">
         ${tilesHtml}
       </div>
+      ${buildCompletedArchiveSectionHtml(completed, now)}
     `;
   }
 
@@ -4741,7 +4932,13 @@
     if (!root) return;
     const now = Date.now();
     const active = state.reminders.filter((r) => !r.completed && !r.deleted);
-    const completed = state.reminders.filter((r) => r.completed && !r.deleted);
+    const completed = state.reminders
+      .filter((r) => r.completed && !r.deleted)
+      .sort(
+        (a, b) =>
+          Number(b.completedAt || b.updatedAt || b.createdAt || 0) -
+          Number(a.completedAt || a.updatedAt || a.createdAt || 0)
+      );
     const readyList = active.filter((r) => isReadyNowItem(r, now));
     const actionList = active.filter(isActionTaskItem);
     const timerList = active.filter(isTimerItem);
@@ -4753,6 +4950,7 @@
 
     const filters = [
       { id: 'all', lbl: `All Active (${active.length})` },
+      { id: 'done', lbl: `✓ Completed (${completed.length})` },
       { id: 'ready', lbl: `Ready Now (${readyList.length})` },
       { id: 'action', lbl: `Action Tasks (${actionList.length})` },
       { id: 'timers', lbl: `Wait Timers (${timerList.length})` },
@@ -4760,8 +4958,7 @@
       { id: 'shipping', lbl: `Shipping (${shippingList.length})` },
       { id: 'payments', lbl: `Payment Holds (${paymentList.length})` },
       { id: 'recurring', lbl: `Recurring (${recurList.length})` },
-      { id: 'ideas', lbl: `Ideas & Parked (${ideasList.length})` },
-      { id: 'done', lbl: `✓ Done (${completed.length})` }
+      { id: 'ideas', lbl: `Ideas & Parked (${ideasList.length})` }
     ];
 
     const fId = state.taskFilter || 'all';
@@ -4842,6 +5039,7 @@
       <div class="ticker-list">
         ${contentHtml}
       </div>
+      ${fId === 'all' ? buildCompletedArchiveSectionHtml(completed, now) : ''}
     `;
   }
 
@@ -4927,6 +5125,19 @@
     if (!root) return;
     const now = Date.now();
     const delegated = state.reminders.filter(isDelegatedItem);
+    const completedDelegated = state.reminders
+      .filter(
+        (r) =>
+          r &&
+          r.completed &&
+          !r.deleted &&
+          (r.isDelegated || r.assigneeName || r.category === 'people')
+      )
+      .sort(
+        (a, b) =>
+          Number(b.completedAt || b.updatedAt || b.createdAt || 0) -
+          Number(a.completedAt || a.updatedAt || a.createdAt || 0)
+      );
     const viewMode = state.delegatedViewMode || 'pipeline';
 
     const filtered = delegated.filter((r) => {
@@ -5070,6 +5281,9 @@
           <button type="button" class="planning-mode-btn ${viewMode === 'list' ? 'active' : ''}" data-del-view-mode="list">
             Full Register
           </button>
+          <button type="button" class="planning-mode-btn ${viewMode === 'completed' ? 'active' : ''}" data-del-view-mode="completed">
+            ✓ Completed (${completedDelegated.length})
+          </button>
         </div>
 
         <div class="horiz-pill-strip">
@@ -5086,6 +5300,22 @@
         </div>
       </div>
     `;
+
+    // VIEW 4: COMPLETED DELEGATIONS
+    if (viewMode === 'completed') {
+      root.innerHTML = `
+        ${composerDeckHtml}
+        ${toolbarHtml}
+        <div class="ticker-list">
+          ${
+            completedDelegated.length
+              ? completedDelegated.map((it) => renderTickerRowHtml(it, now)).join('')
+              : `<div style="padding:28px;text-align:center;color:var(--text-muted)">No completed delegated tasks yet.</div>`
+          }
+        </div>
+      `;
+      return;
+    }
 
     // VIEW 1: 4-STAGE ACCOUNTABILITY PIPELINE
     if (viewMode === 'pipeline') {
@@ -5655,14 +5885,21 @@
 
     const now = Date.now();
     const items = state.reminders.filter(
-      (r) => !r.completed && (r.category || 'work') === clusterId
+      (r) => !r.completed && !r.deleted && (r.category || 'work') === clusterId
     );
+    const completedInCluster = state.reminders
+      .filter((r) => r.completed && !r.deleted && (r.category || 'work') === clusterId)
+      .sort(
+        (a, b) =>
+          Number(b.completedAt || b.updatedAt || b.createdAt || 0) -
+          Number(a.completedAt || a.updatedAt || a.createdAt || 0)
+      );
 
     titleWrap.innerHTML = `
       <div style="display:flex;align-items:center;gap:8px">
         <span style="font-size:18px">${cluster.icon}</span>
         <div>
-          <strong style="font-size:15px">${esc(cluster.label)} (${items.length})</strong>
+          <strong style="font-size:15px">${esc(cluster.label)} (${items.length} active${completedInCluster.length ? ` · ${completedInCluster.length} done` : ''})</strong>
           <div style="font-size:11px;color:var(--text-muted)">${esc(cluster.sub)}</div>
         </div>
       </div>
@@ -5673,17 +5910,29 @@
         <input
           type="text"
           id="sheet-quick-input"
+          enterkeyhint="done"
           class="capture-input"
           style="padding:8px 10px;border-radius:9px;background:var(--bg-card);border:1px solid var(--border-strong)"
           placeholder="Quick add to ${esc(cluster.shortLabel)}…"
         >
         <button type="button" class="capture-submit-btn" id="sheet-quick-add" data-cluster="${cluster.id}">+ Add</button>
       </div>
-      <div class="ticker-list" style="max-height:60vh">
+      <div class="ticker-list" style="max-height:62vh">
         ${
           items.length
             ? items.map((it) => renderTickerRowHtml(it, now)).join('')
             : `<div style="padding:20px;text-align:center;color:var(--text-muted)">No active items in ${esc(cluster.label)}.</div>`
+        }
+        ${
+          completedInCluster.length
+            ? `
+          <div class="ticker-group-header" style="margin-top:8px">
+            <span>✓ Previously Completed in ${esc(cluster.shortLabel)}</span>
+            <span>${completedInCluster.length}</span>
+          </div>
+          ${completedInCluster.map((it) => renderTickerRowHtml(it, now)).join('')}
+        `
+            : ''
         }
       </div>
     `;
@@ -6381,7 +6630,114 @@
     return 'planning';
   }
 
+  let pendingBackgroundRender = false;
+  let recentlyCompletedTimer = null;
+
+  function captureScrollPositions() {
+    const snap = {
+      windowY: typeof window !== 'undefined' ? window.scrollY || 0 : 0,
+      stageTop: document.getElementById('cmd-stage')?.scrollTop || 0,
+      sheetTop: document.getElementById('sheet-body')?.scrollTop || 0,
+      clusters: {}
+    };
+    document.querySelectorAll('.bento-tile[data-cluster-id]').forEach((tile) => {
+      const cid = tile.getAttribute('data-cluster-id');
+      const itemsBox = tile.querySelector('.bento-items');
+      if (cid && itemsBox) {
+        snap.clusters[cid] = itemsBox.scrollTop || 0;
+      }
+    });
+    return snap;
+  }
+
+  function restoreScrollPositions(snap) {
+    if (!snap) return;
+    const stage = document.getElementById('cmd-stage');
+    if (stage && snap.stageTop > 0) stage.scrollTop = snap.stageTop;
+    const sheet = document.getElementById('sheet-body');
+    if (sheet && snap.sheetTop > 0) sheet.scrollTop = snap.sheetTop;
+    if (snap.clusters) {
+      for (const [cid, top] of Object.entries(snap.clusters)) {
+        if (top > 0) {
+          const box = document.querySelector(`.bento-tile[data-cluster-id="${cid}"] .bento-items`);
+          if (box) box.scrollTop = top;
+        }
+      }
+    }
+  }
+
+  function captureActiveInputState() {
+    const el = document.activeElement;
+    if (!el) return null;
+    const tag = (el.tagName || '').toUpperCase();
+    if (tag !== 'INPUT' && tag !== 'TEXTAREA' && tag !== 'SELECT') return null;
+    let selector = '';
+    if (el.id) {
+      selector = `#${CSS.escape(el.id)}`;
+    } else if (el.getAttribute('data-step-input-for')) {
+      selector = `[data-step-input-for="${CSS.escape(el.getAttribute('data-step-input-for'))}"]`;
+    } else if (el.closest('[data-inline-cluster-form]')) {
+      const cId = el.closest('[data-inline-cluster-form]').getAttribute('data-inline-cluster-form');
+      selector = `[data-inline-cluster-form="${CSS.escape(cId)}"] input`;
+    } else if (el.closest('[data-inline-horizon-form]')) {
+      const hId = el.closest('[data-inline-horizon-form]').getAttribute('data-inline-horizon-form');
+      selector = `[data-inline-horizon-form="${CSS.escape(hId)}"] input`;
+    } else if (el.closest('[data-inline-bu-form]')) {
+      const bId = el.closest('[data-inline-bu-form]').getAttribute('data-inline-bu-form');
+      selector = `[data-inline-bu-form="${CSS.escape(bId)}"] input`;
+    } else if (el.closest('[data-inline-person-form]')) {
+      const pName = el.closest('[data-inline-person-form]').getAttribute('data-inline-person-form');
+      selector = `[data-inline-person-form="${CSS.escape(pName)}"] input`;
+    }
+    if (!selector) return null;
+    let selStart = null;
+    let selEnd = null;
+    try {
+      selStart = el.selectionStart;
+      selEnd = el.selectionEnd;
+    } catch {}
+    return {
+      selector,
+      value: el.value,
+      selStart,
+      selEnd
+    };
+  }
+
+  function restoreActiveInputState(snap) {
+    if (!snap || !snap.selector) return;
+    try {
+      const nextEl = document.querySelector(snap.selector);
+      if (!nextEl) return;
+      if (typeof snap.value === 'string' && nextEl.value !== snap.value && snap.value !== '') {
+        nextEl.value = snap.value;
+      }
+      if (document.activeElement !== nextEl) {
+        nextEl.focus({ preventScroll: true });
+      }
+      if (typeof snap.selStart === 'number' && typeof nextEl.setSelectionRange === 'function') {
+        const len = (nextEl.value || '').length;
+        nextEl.setSelectionRange(Math.min(snap.selStart, len), Math.min(snap.selEnd ?? snap.selStart, len));
+      }
+    } catch {}
+  }
+
+  function requestBackgroundRender() {
+    if (isFormControlFocused()) {
+      pendingBackgroundRender = true;
+      renderHudRibbon();
+      updateDockBadges();
+      updatePushHudState();
+      return;
+    }
+    pendingBackgroundRender = false;
+    renderAll();
+  }
+
   function renderAll() {
+    const scrollSnap = captureScrollPositions();
+    const inputSnap = captureActiveInputState();
+
     state.activeTab = normalizeCommandTab(state.activeTab);
     document.documentElement.setAttribute('data-theme', state.theme);
     const metaTheme = document.getElementById('meta-theme-color');
@@ -6413,6 +6769,9 @@
     } else if (state.openTaskWorkbenchId && state.openSheetKind === 'workbench' && !document.getElementById('sheet-backdrop')?.hidden) {
       openTaskWorkbenchSheet(state.openTaskWorkbenchId);
     }
+
+    restoreScrollPositions(scrollSnap);
+    restoreActiveInputState(inputSnap);
   }
 
   function showToast(msg) {
@@ -6745,9 +7104,35 @@
 
     // Capture Bar input, Horizon/Priority cyclers & submit
     const capInp = document.getElementById('capture-input');
+    const capShell = document.getElementById('capture-input-shell');
+
+    // Flush any deferred background render once user finishes typing in any input
+    document.addEventListener('focusout', () => {
+      setTimeout(() => {
+        if (pendingBackgroundRender && !isFormControlFocused()) {
+          pendingBackgroundRender = false;
+          renderAll();
+        }
+      }, 150);
+    });
+
+    capShell?.addEventListener('click', (e) => {
+      if (!e.target.closest('button') && !e.target.closest('input')) {
+        capInp?.focus();
+      }
+    });
+
     capInp?.addEventListener('input', () => {
       state.draft.text = capInp.value;
       renderLiveAdvisorDrawer();
+    });
+
+    capInp?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
+        e.preventDefault();
+        state.draft.text = capInp.value;
+        addTaskFromDraft(false);
+      }
     });
 
     document.getElementById('btn-draft-horizon')?.addEventListener('click', () => {
@@ -6756,6 +7141,7 @@
       const next = order[(order.indexOf(cur) + 1) % order.length];
       state.draft.horizon = next;
       renderLiveAdvisorDrawer();
+      capInp?.focus({ preventScroll: true });
     });
 
     document.getElementById('btn-draft-priority')?.addEventListener('click', () => {
@@ -6764,10 +7150,12 @@
       const next = order[(order.indexOf(cur) + 1) % order.length];
       state.draft.priority = next;
       renderLiveAdvisorDrawer();
+      capInp?.focus({ preventScroll: true });
     });
 
     document.getElementById('capture-form')?.addEventListener('submit', (e) => {
       e.preventDefault();
+      if (capInp) state.draft.text = capInp.value;
       addTaskFromDraft(false);
     });
 
@@ -6786,6 +7174,7 @@
         if (inp) inp.value = state.draft.text;
       }
       renderLiveAdvisorDrawer();
+      capInp?.focus({ preventScroll: true });
       showToast('Cleared assignee');
     });
 
@@ -6799,11 +7188,26 @@
       }
     });
 
+    advDrawer?.addEventListener('keydown', (e) => {
+      if (
+        (e.target.id === 'draft-steps-input' || e.target.id === 'draft-notes-input') &&
+        e.key === 'Enter' &&
+        !e.shiftKey &&
+        !e.isComposing
+      ) {
+        e.preventDefault();
+        if (e.target.id === 'draft-steps-input') state.draft.checklistRaw = e.target.value;
+        if (e.target.id === 'draft-notes-input') state.draft.notes = e.target.value;
+        addTaskFromDraft(false);
+      }
+    });
+
     advDrawer?.addEventListener('click', (e) => {
       const hChip = e.target.closest('[data-horizon-chip]');
       if (hChip) {
         state.draft.horizon = hChip.getAttribute('data-horizon-chip') || 'auto';
         renderLiveAdvisorDrawer();
+        capInp?.focus({ preventScroll: true });
         return;
       }
       const pChip = e.target.closest('[data-priority-chip]');
@@ -6811,18 +7215,21 @@
         const pVal = pChip.getAttribute('data-priority-chip') || '';
         state.draft.priority = state.draft.priority === pVal ? '' : pVal;
         renderLiveAdvisorDrawer();
+        capInp?.focus({ preventScroll: true });
         return;
       }
       const wChip = e.target.closest('[data-wait-chip]');
       if (wChip) {
         state.draft.waitChoice = wChip.getAttribute('data-wait-chip');
         renderLiveAdvisorDrawer();
+        capInp?.focus({ preventScroll: true });
         return;
       }
       const cChip = e.target.closest('[data-cluster-chip]');
       if (cChip) {
         state.draft.clusterOverride = cChip.getAttribute('data-cluster-chip');
         renderLiveAdvisorDrawer();
+        capInp?.focus({ preventScroll: true });
         return;
       }
       if (e.target.closest('#btn-add-and-whatsapp')) {
@@ -6845,8 +7252,8 @@
     document.getElementById('cmd-bottom-dock')?.addEventListener('click', handleTabNavClick);
     document.getElementById('hud-desktop-nav')?.addEventListener('click', handleTabNavClick);
 
-    // Shared Prayer Controls handler
-    const handlePrayerControlClick = async (e) => {
+    // Shared Prayer Controls handler (synchronous so task/sheet clicks never yield a microtask before handling)
+    const handlePrayerControlClick = (e) => {
       if (e.target.closest('#btn-prayer-master-toggle')) {
         const nextEnabled = !state.prayerConfig.enabled;
         updatePrayerConfig({ enabled: nextEnabled });
@@ -6865,12 +7272,13 @@
         return true;
       }
       if (e.target.closest('#btn-prayer-test-push')) {
-        await sendTestPrayerPush();
+        sendTestPrayerPush().catch(() => {});
         return true;
       }
       if (e.target.closest('#btn-prayer-sub-device')) {
-        await subscribeCurrentBrowserPush();
-        renderAll();
+        subscribeCurrentBrowserPush()
+          .then(() => renderAll())
+          .catch(() => {});
         return true;
       }
       const pToggle = e.target.closest('[data-prayer-toggle]');
@@ -7136,8 +7544,8 @@
     };
 
     // Delegated clicks inside Main Stage & Slide-Up Sheet
-    const handleTaskInteraction = async (e) => {
-      if (await handlePrayerControlClick(e)) return;
+    const handleTaskInteraction = (e) => {
+      if (handlePrayerControlClick(e)) return;
 
       const openPrayerTrigger = e.target.closest('[data-open-prayer]');
       if (openPrayerTrigger) {
@@ -7254,6 +7662,18 @@
       if (actBtn) {
         e.stopPropagation();
         const act = actBtn.getAttribute('data-act');
+        if (act === 'toggle-completed-archive') {
+          state.completedSectionOpen = !state.completedSectionOpen;
+          renderAll();
+          if (state.completedSectionOpen) {
+            setTimeout(() => {
+              document
+                .getElementById('completed-archive-card')
+                ?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }, 40);
+          }
+          return;
+        }
         if (act === 'person-digest') {
           const person = actBtn.getAttribute('data-person') || '';
           dispatchPersonDigestWhatsApp(person);
@@ -7362,11 +7782,43 @@
             showToast(`🔁 Completed today · Rolled forward (${item.recur === 'weekly' ? '+7d' : '+24h'})`);
             return;
           }
+          const nowTs = Date.now();
           item.completed = !item.completed;
-          if (item.completed && item.isDelegated) {
-            item.delegationStatus = 'verified';
+          if (item.completed) {
+            item.completedAt = nowTs;
+            if (item.isDelegated) {
+              item.delegationStatus = 'verified';
+            }
+            // Keep checked task visible in-place on the group card for 2.2s (and extend any other recently checked tasks) so checking multiple tasks in a group on iPhone never shifts rows under your thumb
+            if (!state.recentlyCompletedUntil) state.recentlyCompletedUntil = {};
+            const graceUntil = nowTs + 2200;
+            for (const k of Object.keys(state.recentlyCompletedUntil)) {
+              if (Number(state.recentlyCompletedUntil[k] || 0) > nowTs) {
+                state.recentlyCompletedUntil[k] = graceUntil;
+              } else {
+                delete state.recentlyCompletedUntil[k];
+              }
+            }
+            state.recentlyCompletedUntil[item.id] = graceUntil;
+            if (recentlyCompletedTimer) clearTimeout(recentlyCompletedTimer);
+            recentlyCompletedTimer = setTimeout(() => {
+              const tNow = Date.now();
+              if (state.recentlyCompletedUntil) {
+                for (const k of Object.keys(state.recentlyCompletedUntil)) {
+                  if (Number(state.recentlyCompletedUntil[k] || 0) <= tNow) {
+                    delete state.recentlyCompletedUntil[k];
+                  }
+                }
+              }
+              requestBackgroundRender();
+            }, 2260);
+          } else {
+            item.completedAt = 0;
+            if (state.recentlyCompletedUntil) {
+              delete state.recentlyCompletedUntil[item.id];
+            }
           }
-          item.updatedAt = Date.now();
+          item.updatedAt = nowTs;
           saveLocalState();
           renderAll();
           if (item.completed) {
@@ -7375,7 +7827,7 @@
             scheduleCloudTimerPush(item, null, true).catch(() => {});
           }
           syncAll().catch(() => {});
-          showToast(item.completed ? '✓ Marked complete' : '↺ Reopened task');
+          showToast(item.completed ? '✓ Marked complete (saved in ✓ Completed)' : '↺ Reopened task');
           return;
         }
         if (act === 'whatsapp') {
@@ -7452,9 +7904,19 @@
         }
       }
 
-      // Open Task Workbench from micro-row or horizon card click
+      // Open Task Workbench from micro-row or horizon card click (if tap was near left checkbox edge on mobile, toggle complete instead)
       const openWbRow = e.target.closest('[data-open-workbench]');
       if (openWbRow && !e.target.closest('button') && !e.target.closest('input')) {
+        if (openWbRow.classList.contains('bento-micro-row') && typeof e.clientX === 'number' && e.clientX > 0) {
+          const rect = openWbRow.getBoundingClientRect();
+          if (e.clientX - rect.left <= 44) {
+            const checkBtn = openWbRow.querySelector('[data-act="toggle-done"]');
+            if (checkBtn) {
+              checkBtn.click();
+              return;
+            }
+          }
+        }
         const wId = openWbRow.getAttribute('data-open-workbench');
         if (wId) {
           openTaskWorkbenchSheet(wId);
@@ -7539,6 +8001,28 @@
 
     document.getElementById('cmd-stage')?.addEventListener('click', handleTaskInteraction);
     document.getElementById('cmd-stage')?.addEventListener('submit', handleStageFormSubmit);
+    document.getElementById('cmd-stage')?.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter' || e.shiftKey || e.isComposing) return;
+      const target = e.target;
+      if (!target || (target.tagName || '').toUpperCase() !== 'INPUT') return;
+      const stepTaskId = target.getAttribute('data-step-input-for');
+      if (stepTaskId) {
+        e.preventDefault();
+        e.stopPropagation();
+        const addBtn = target.parentElement?.querySelector(`[data-act="add-step"][data-id="${stepTaskId}"]`);
+        if (addBtn) addBtn.click();
+        return;
+      }
+      const form = target.closest('form');
+      if (form) {
+        e.preventDefault();
+        if (typeof form.requestSubmit === 'function') {
+          form.requestSubmit();
+        } else {
+          form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+        }
+      }
+    });
 
     // Sheet interactions
     const backdrop = document.getElementById('sheet-backdrop');
@@ -7552,7 +8036,7 @@
     });
 
     document.getElementById('sheet-body')?.addEventListener('click', async (e) => {
-      if (await handlePrayerControlClick(e)) return;
+      if (handlePrayerControlClick(e)) return;
 
       if (e.target.closest('#btn-notif-mark-all-read')) {
         markAllNotificationsChecked();
@@ -7839,6 +8323,53 @@
         showToast(opts.editMemberId ? `Updated 👤 ${name}` : `Added 👤 ${name} to Team Roster`);
       }
     });
+
+    document.getElementById('sheet-body')?.addEventListener('input', (e) => {
+      if (e.target.id === 'delegate-sheet-task-input') {
+        state.draft.text = e.target.value;
+      }
+    });
+
+    document.getElementById('sheet-body')?.addEventListener('keydown', async (e) => {
+      if (e.key !== 'Enter' || e.shiftKey || e.isComposing) return;
+      const target = e.target;
+      if (!target || (target.tagName || '').toUpperCase() !== 'INPUT') return;
+
+      if (target.id === 'sheet-quick-input') {
+        e.preventDefault();
+        e.stopPropagation();
+        document.getElementById('sheet-quick-add')?.click();
+        return;
+      }
+
+      if (target.id === 'delegate-sheet-task-input') {
+        e.preventDefault();
+        e.stopPropagation();
+        state.draft.text = target.value;
+        if (state.draft.text.trim() && state.draft.assigneeName) {
+          if (backdrop) backdrop.hidden = true;
+          await addTaskFromDraft(false);
+        } else if (state.draft.text.trim() && state.teamRoster.length === 1) {
+          const mem = state.teamRoster[0];
+          state.draft.assigneeId = mem.id;
+          state.draft.assigneeName = mem.name;
+          state.draft.assigneeBu = mem.bu;
+          if (backdrop) backdrop.hidden = true;
+          await addTaskFromDraft(false);
+        } else {
+          showToast('Tap a team member below to assign this task');
+        }
+        return;
+      }
+
+      const stepTaskId = target.getAttribute('data-step-input-for');
+      if (stepTaskId) {
+        e.preventDefault();
+        e.stopPropagation();
+        const addBtn = target.parentElement?.querySelector(`[data-act="add-step"][data-id="${stepTaskId}"]`);
+        if (addBtn) addBtn.click();
+      }
+    });
   }
 
   function isStandalone() {
@@ -7937,7 +8468,7 @@
         }
       });
       navigator.serviceWorker
-        .register('./sw.js?v=17', { updateViaCache: 'none' })
+        .register('./sw.js?v=18', { updateViaCache: 'none' })
         .then(async (reg) => {
           reg.update().catch(() => {});
           if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
@@ -8001,15 +8532,15 @@
     window.addEventListener('storage', (e) => {
       if (e.key === STORAGE_KEY || e.key === LEGACY_LEDGER_KEY || e.key === NOTIF_INBOX_KEY) {
         loadLocalState();
-        renderAll();
+        requestBackgroundRender();
       }
     });
     window.addEventListener('focus', () => {
-      loadLocalState();
+      if (!isFormControlFocused()) loadLocalState();
       syncNotificationsWithSwCache().finally(() => {
         consumePendingCommandNav().finally(() => {
           seedUncheckedDueNotifications();
-          renderAll();
+          requestBackgroundRender();
           checkLivePrayerNotificationsTick();
           checkLiveTaskNotificationsTick();
           syncAll().catch(() => {});
@@ -8018,11 +8549,11 @@
     });
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible') {
-        loadLocalState();
+        if (!isFormControlFocused()) loadLocalState();
         syncNotificationsWithSwCache().finally(() => {
           consumePendingCommandNav().finally(() => {
             seedUncheckedDueNotifications();
-            renderAll();
+            requestBackgroundRender();
             checkLivePrayerNotificationsTick();
             checkLiveTaskNotificationsTick();
             syncAll().catch(() => {});

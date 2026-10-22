@@ -918,6 +918,13 @@ html[data-theme="dark"] .mini-chip.wa-btn {
   min-height: 0;
 }
 
+@media (max-width: 720px) {
+  #view-planning.cmd-view.is-radar-mode {
+    flex: 1 0 auto;
+    min-height: auto;
+  }
+}
+
 .cmd-view[hidden] {
   display: none !important;
 }
@@ -1176,8 +1183,18 @@ html[data-theme="dark"] .mini-chip.wa-btn {
   min-height: 0;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  grid-template-rows: repeat(4, minmax(128px, 1fr));
+  grid-template-rows: repeat(4, minmax(145px, 1fr));
   gap: 8px;
+}
+
+@media (max-width: 720px) {
+  .bento-radar-grid {
+    flex: 0 0 auto;
+    min-height: auto;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto;
+    gap: 10px;
+  }
 }
 
 @media (min-width: 1024px) {
@@ -1203,6 +1220,17 @@ html[data-theme="dark"] .mini-chip.wa-btn {
   box-shadow: var(--shadow-xs);
   transition: border-color 0.14s ease, box-shadow 0.14s ease;
   position: relative;
+}
+
+@media (max-width: 720px) {
+  .bento-tile {
+    min-height: 0;
+    overflow: visible;
+    padding: 11px 12px 10px 12px;
+  }
+  .bento-tile.is-empty-mobile {
+    padding: 9px 12px;
+  }
 }
 
 .bento-tile[data-cluster-tone="people"] { --tile-accent: var(--steel); }
@@ -1327,10 +1355,19 @@ html[data-theme="dark"] .mini-chip.wa-btn {
   min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 5px;
   overflow-y: auto;
   overflow-x: hidden;
   scrollbar-width: none;
+}
+
+@media (max-width: 720px) {
+  .bento-items {
+    flex: 0 0 auto;
+    overflow: visible;
+    max-height: none;
+    gap: 6px;
+  }
 }
 
 .bento-items::-webkit-scrollbar {
@@ -1341,16 +1378,26 @@ html[data-theme="dark"] .mini-chip.wa-btn {
   flex-shrink: 0;
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 5px 7px;
+  gap: 7px;
+  padding: 6px 8px;
   border-radius: 7px;
   background: var(--bg-subtle);
   border: 1px solid var(--border-subtle);
-  font-size: 11.5px;
-  line-height: 1.25;
+  font-size: 12px;
+  line-height: 1.3;
   min-width: 0;
   cursor: pointer;
-  transition: border-color 0.12s ease, background 0.12s ease;
+  transition: border-color 0.12s ease, background 0.12s ease, opacity 0.16s ease;
+}
+
+@media (max-width: 720px) {
+  .bento-micro-row {
+    padding: 9px 10px;
+    gap: 10px;
+    font-size: 13.5px;
+    line-height: 1.35;
+    border-radius: 8px;
+  }
 }
 
 .bento-micro-row:hover {
@@ -1366,24 +1413,49 @@ html[data-theme="dark"] .mini-chip.wa-btn {
   border-left: 3px solid var(--brass-gold);
 }
 
+.bento-micro-row.is-checked {
+  background: var(--emerald-soft);
+  border-color: rgba(16, 185, 129, 0.45);
+  opacity: 0.78;
+}
+
+.bento-micro-row.is-checked .bento-micro-text {
+  text-decoration: line-through;
+  color: var(--text-muted);
+}
+
 .bento-micro-check {
-  width: 16px;
-  height: 16px;
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
-  border: 1.5px solid var(--border-mid);
+  border: 1.8px solid var(--brass);
+  background: var(--bg-card);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 9px;
+  font-size: 11px;
+  font-weight: 800;
   color: transparent;
   flex-shrink: 0;
   transition: all 0.12s ease;
+  position: relative;
 }
 
-.bento-micro-check:hover {
+@media (max-width: 720px) {
+  .bento-micro-check {
+    width: 26px;
+    height: 26px;
+    font-size: 12.5px;
+    border-width: 2px;
+  }
+}
+
+.bento-micro-check:hover,
+.bento-micro-check.checked,
+.bento-micro-row.is-checked .bento-micro-check {
   border-color: var(--emerald);
-  background: var(--emerald-soft);
-  color: var(--emerald);
+  background: var(--emerald);
+  color: #FFFFFF;
 }
 
 .bento-micro-text {
@@ -1394,6 +1466,15 @@ html[data-theme="dark"] .mini-chip.wa-btn {
   text-overflow: ellipsis;
   color: var(--text-primary);
   font-weight: 600;
+}
+
+@media (max-width: 720px) {
+  .bento-micro-text {
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
 }
 
 .bento-micro-meta {
@@ -2006,18 +2087,28 @@ html[data-theme="dark"] .mini-chip.wa-btn {
 }
 
 .ticker-check-btn {
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   border: 1.8px solid var(--brass);
+  background: var(--bg-card);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 10.5px;
+  font-size: 11.5px;
   font-weight: 800;
   color: transparent;
   flex-shrink: 0;
   transition: all 0.12s ease;
+}
+
+@media (max-width: 720px) {
+  .ticker-check-btn {
+    width: 27px;
+    height: 27px;
+    font-size: 12.5px;
+    border-width: 2px;
+  }
 }
 
 .ticker-check-btn:hover,
@@ -3648,4 +3739,62 @@ html[data-theme="dark"] .delegate-btn-assign.primary {
   background: var(--emerald);
   border-color: var(--emerald);
   color: #FFFFFF;
+}
+
+/* Completed Tasks Archive & Collapsible Section */
+.completed-archive-card {
+  flex: 0 0 auto;
+  border-radius: 10px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-xs);
+  overflow: hidden;
+  margin-top: 4px;
+}
+
+.completed-archive-head {
+  width: 100%;
+  padding: 9px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  background: var(--bg-subtle);
+  cursor: pointer;
+  text-align: left;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  transition: background 0.12s ease;
+}
+
+.completed-archive-head:hover {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+}
+
+.completed-archive-body {
+  padding: 8px 10px 10px 10px;
+  border-top: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+@media (max-width: 720px) {
+  .bento-inline-form {
+    margin-top: 8px;
+    padding-top: 8px;
+    gap: 6px;
+  }
+  .bento-inline-input {
+    padding: 7px 10px;
+    min-height: 36px;
+    border-color: var(--border-subtle);
+  }
+  .bento-inline-btn {
+    height: 36px;
+    padding: 0 12px;
+    font-size: 12px;
+  }
 }
