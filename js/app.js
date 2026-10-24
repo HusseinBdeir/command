@@ -1827,6 +1827,38 @@
       }
     }
 
+    // 3. Today's Shia Prayer Times that entered within the last 6h while offline/suspended
+    const pCfg = normalizePrayerConfig(state.prayerConfig);
+    if (pCfg.enabled && state.notifPrefs.enabled !== false && state.notifPrefs.prayers !== false) {
+      const todayStr = todayIso();
+      const sched = computeShiaPrayerTimesForDate(todayStr, pCfg);
+      for (const p of sched.prayers || []) {
+        if (!p.enabled) continue;
+        if (nowMs >= p.epochMs && nowMs - p.epochMs < 6 * 3600 * 1000) {
+          const tag = `prayer-${todayStr}-${p.id}`;
+          const alertKey = `prayer_${todayStr}_${p.id}`;
+          if (!checkedSet.has(alertKey) && !checkedSet.has(tag) && !existingIds.has(alertKey) && !existingIds.has(tag)) {
+            state.notifications.unshift({
+              id: alertKey,
+              tag,
+              alertKey,
+              title: `🕌 ${p.label} Prayer Time · ${p.time24} (${p.arabic})`,
+              body: `${p.label} entered at ${p.time24} in ${pCfg.locationName}. ${p.windowNote}.`,
+              tab: 'prayers',
+              taskId: '',
+              openPrayer: true,
+              url: './?tab=prayers',
+              ts: p.epochMs,
+              checked: false
+            });
+            existingIds.add(alertKey);
+            existingIds.add(tag);
+            added = true;
+          }
+        }
+      }
+    }
+
     if (added) {
       state.notifications = state.notifications
         .sort((a, b) => Number(b.ts || 0) - Number(a.ts || 0))
@@ -2056,7 +2088,7 @@
       const r = await fetch(CLOUD_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
-        body: JSON.stringify({ key: CLOUD_KEY, op: 'get' })
+        body: JSON.stringify({ key: CLOUD_KEY, op: 'get_control' })
       });
       if (!r.ok) return null;
       const store = await r.json();
@@ -2841,20 +2873,21 @@
       if (!cloudDocs) {
         cloudDocs = await fetchCloudDocsSnapshot();
       }
-      let localMap = {};
+      let prevLocalMap = {};
       if (!forceReschedule) {
         try {
-          localMap = JSON.parse(localStorage.getItem(PRAYER_SCHED_KEY) || '{}') || {};
+          prevLocalMap = JSON.parse(localStorage.getItem(PRAYER_SCHED_KEY) || '{}') || {};
         } catch {
-          localMap = {};
+          prevLocalMap = {};
         }
       }
+      const nextLocalMap = {};
 
       const nowMs = Date.now();
       const baseIso = todayIso();
 
-      // Schedule upcoming Fajr, Dohor, and Maghrib over the next 3 days (today + 2 days)
-      for (let d = 0; d < 3; d++) {
+      // Schedule upcoming Fajr, Dohor, and Maghrib over today + next 3 full days (4 distinct dow slots)
+      for (let d = 0; d < 4; d++) {
         const iso = shiftIsoDate(baseIso, d);
         const [yy, mm, dd] = iso.split('-').map(Number);
         const dow = new Date(Date.UTC(yy, mm - 1, dd)).getUTCDay(); // 0..6
@@ -2870,8 +2903,6 @@
             const timerKey = `prayer_d${dow}_${p.id}_${devShort}`;
 
             if (!p.enabled) {
-              delete localMap[preTimerKey];
-              delete localMap[timerKey];
               const cancelPatch = {};
               if (cloudDocs?.[preTimerKey]?.id && cloudDocs[preTimerKey].id !== 'cancelled') {
                 cancelPatch[preTimerKey] = { id: 'cancelled', updatedAt: new Date().toISOString() };
@@ -2883,7 +2914,7 @@
                 fetch(CLOUD_URL, {
                   method: 'POST',
                   headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
-                  body: JSON.stringify({ key: CLOUD_KEY, op: 'patch', patch: cancelPatch })
+                  body: JSON.stringify({ key: CLOUD_KEY, op: 'patch', ackOnly: true, patch: cancelPatch })
                 }).catch(() => {});
               }
               continue;
@@ -2893,10 +2924,10 @@
             if (cfg.preRemindMin > 0 && p.enabled) {
               const preTargetMs = p.epochMs - cfg.preRemindMin * 60000;
               const preDelaySec = Math.round((preTargetMs - nowMs) / 1000);
+              const preSpecPrefix = `${iso}_pre_${p.id}_${preTargetMs}`;
+              const cloudPreId = cloudDocs?.[preTimerKey]?.id;
+              const localPreId = prevLocalMap[preTimerKey];
               if (preDelaySec >= 10 && preDelaySec <= 4 * 86400) {
-                const preSpecPrefix = `${iso}_pre_${p.id}_${preTargetMs}`;
-                const cloudPreId = cloudDocs?.[preTimerKey]?.id;
-                const localPreId = localMap[preTimerKey];
                 const alreadyInCloud = !forceReschedule && matchesArmedTimerSpec(cloudPreId, preSpecPrefix);
                 const alreadyInLocal = !forceReschedule && !cloudDocs && matchesArmedTimerSpec(localPreId, preSpecPrefix);
                 if (!alreadyInCloud && !alreadyInLocal) {
@@ -2926,27 +2957,29 @@
                     })
                   });
                   if (r.ok) {
-                    localMap[preTimerKey] = preTimerId;
+                    nextLocalMap[preTimerKey] = preTimerId;
                     if (cloudDocs) cloudDocs[preTimerKey] = { id: preTimerId };
                     scheduledCount++;
                     try {
-                      localStorage.setItem(PRAYER_SCHED_KEY, JSON.stringify(localMap));
+                      localStorage.setItem(PRAYER_SCHED_KEY, JSON.stringify(nextLocalMap));
                     } catch {}
                     await new Promise((res) => setTimeout(res, 250));
                   }
                 } else {
-                  localMap[preTimerKey] = cloudPreId || localPreId || preSpecPrefix;
+                  nextLocalMap[preTimerKey] = cloudPreId || localPreId || preSpecPrefix;
                   scheduledCount++;
                 }
+              } else if (cloudPreId && String(cloudPreId).startsWith(`fired_${preSpecPrefix}`)) {
+                nextLocalMap[preTimerKey] = cloudPreId;
               }
             }
 
             // B) Exact Prayer Time Notification
             const delaySec = Math.round((p.epochMs - nowMs) / 1000);
+            const specPrefix = `${iso}_${p.id}_${p.epochMs}`;
+            const cloudId = cloudDocs?.[timerKey]?.id;
+            const localId = prevLocalMap[timerKey];
             if (delaySec >= 5 && delaySec <= 4 * 86400 && p.enabled) {
-              const specPrefix = `${iso}_${p.id}_${p.epochMs}`;
-              const cloudId = cloudDocs?.[timerKey]?.id;
-              const localId = localMap[timerKey];
               const alreadyInCloud = !forceReschedule && matchesArmedTimerSpec(cloudId, specPrefix);
               const alreadyInLocal = !forceReschedule && !cloudDocs && matchesArmedTimerSpec(localId, specPrefix);
 
@@ -2977,25 +3010,27 @@
                   })
                 });
                 if (r.ok) {
-                  localMap[timerKey] = timerId;
+                  nextLocalMap[timerKey] = timerId;
                   if (cloudDocs) cloudDocs[timerKey] = { id: timerId };
                   scheduledCount++;
                   try {
-                    localStorage.setItem(PRAYER_SCHED_KEY, JSON.stringify(localMap));
+                    localStorage.setItem(PRAYER_SCHED_KEY, JSON.stringify(nextLocalMap));
                   } catch {}
                   await new Promise((res) => setTimeout(res, 250));
                 }
               } else {
-                localMap[timerKey] = cloudId || localId || specPrefix;
+                nextLocalMap[timerKey] = cloudId || localId || specPrefix;
                 scheduledCount++;
               }
+            } else if (cloudId && String(cloudId).startsWith(`fired_${specPrefix}`)) {
+              nextLocalMap[timerKey] = cloudId;
             }
           }
         }
       }
 
       try {
-        localStorage.setItem(PRAYER_SCHED_KEY, JSON.stringify(localMap));
+        localStorage.setItem(PRAYER_SCHED_KEY, JSON.stringify(nextLocalMap));
       } catch {}
     } catch {} finally {
       prayerScheduleInFlight = false;
@@ -3724,7 +3759,7 @@
       const getRes = await fetch(CLOUD_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
-        body: JSON.stringify({ key: CLOUD_KEY, op: 'get' })
+        body: JSON.stringify({ key: CLOUD_KEY, op: 'get_control' })
       });
       if (getRes.ok) {
         const store = await getRes.json();
@@ -3743,6 +3778,11 @@
             localStorage.setItem(CLOUD_PUSH_DEVS_KEY, JSON.stringify(state.cloudPushDevices));
           } catch {}
         }
+
+        // Arm exact-second serverless Web Push notifications FIRST so armedPrayers/armedTimers in push_registry are fresh & pruned
+        await scheduleUpcomingPrayerCloudPushes(docs).catch(() => {});
+        await scheduleAllActiveTaskCloudPushes(docs).catch(() => {});
+        seedUncheckedDueNotifications();
 
         // Ensure local browser Web Push subscription is also registered in shared push_registry
         const localSub = normalizePushSubEntry(getSavedPushSub());
@@ -3851,6 +3891,7 @@
           body: JSON.stringify({
             key: CLOUD_KEY,
             op: 'patch',
+            ackOnly: true,
             patch: patchPayload
           })
         });
@@ -3858,10 +3899,6 @@
         if (dot) dot.className = state.bridgeOrigin ? 'sync-dot' : 'sync-dot cloud';
         if (lbl) lbl.textContent = state.bridgeOrigin ? 'Bridge+Cloud' : 'Cloud Live';
         requestBackgroundRender();
-
-        // Arm exact-second serverless Web Push notifications for upcoming Shia prayers + all active Tasks, Reminders & Wait Timers
-        scheduleUpcomingPrayerCloudPushes(docs).catch(() => {});
-        scheduleAllActiveTaskCloudPushes(docs).catch(() => {});
       }
     } catch {}
   }

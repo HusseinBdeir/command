@@ -1,19 +1,19 @@
-/* Planner — Standalone Executive & Personal PWA for Planning, Tasks, Delegation, 100% Score & Shia Prayer Times (Service Worker v21) */
-const CACHE_NAME = 'bhf-planner-v21';
+/* Planner — Standalone Executive & Personal PWA for Planning, Tasks, Delegation, 100% Score & Shia Prayer Times (Service Worker v22) */
+const CACHE_NAME = 'bhf-planner-v22';
 const NAV_CACHE = 'theo-cmd-nav-handoff-v1';
 const PENDING_NAV_URL = './__theo_cmd_pending_nav.json';
 const UNREAD_NOTIFS_URL = './__theo_cmd_unread_notifs.json';
 const APP_SHELL = [
   './',
   './index.html',
-  './css/command.css?v=21',
-  './js/endpoints.js?v=21',
-  './js/app.js?v=21',
-  './manifest.json?v=21',
-  './icon.svg?v=21',
-  './icon-180.png?v=21',
-  './icon-192.png?v=21',
-  './icon-512.png?v=21'
+  './css/command.css?v=22',
+  './js/endpoints.js?v=22',
+  './js/app.js?v=22',
+  './manifest.json?v=22',
+  './icon.svg?v=22',
+  './icon-180.png?v=22',
+  './icon-192.png?v=22',
+  './icon-512.png?v=22'
 ];
 
 self.addEventListener('install', (event) => {
