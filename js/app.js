@@ -2044,6 +2044,28 @@
     } catch {}
   }
 
+  function matchesArmedTimerSpec(storedId, specPrefix) {
+    if (typeof storedId !== 'string' || !storedId || !specPrefix) return false;
+    if (storedId === 'cancelled' || storedId.startsWith('fired_')) return false;
+    return storedId === specPrefix || storedId.startsWith(`${specPrefix}__`);
+  }
+
+  async function fetchCloudDocsSnapshot() {
+    if (!CLOUD_URL || !CLOUD_KEY) return null;
+    try {
+      const r = await fetch(CLOUD_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
+        body: JSON.stringify({ key: CLOUD_KEY, op: 'get' })
+      });
+      if (!r.ok) return null;
+      const store = await r.json();
+      return store?.docs || store || null;
+    } catch {
+      return null;
+    }
+  }
+
   async function scheduleCloudTimerPush(item, cloudDocs = null, forceReschedule = false) {
     if (!item || !item.id || item.completed || item.deleted) return false;
     if (state.notifPrefs.enabled === false) return false;
@@ -2063,6 +2085,10 @@
     if (!targetAt) return false;
     const delaySec = Math.round((targetAt - Date.now()) / 1000);
     if (delaySec < 5 || delaySec > 25 * 86400) return false;
+
+    if (!cloudDocs) {
+      cloudDocs = await fetchCloudDocsSnapshot();
+    }
 
     const expSec = Math.floor(targetAt / 1000) + 12 * 3600;
     const payload = buildTaskNotificationPayload(item);
@@ -2090,14 +2116,17 @@
         .replace(/[^a-zA-Z0-9]/g, '')
         .slice(-10);
       const timerKey = `timer_${item.id}_${devShort}`;
-      const timerId = `${item.id}_${targetAt}_${devShort}`;
-      const alreadyInCloud = cloudDocs && cloudDocs[timerKey]?.id === timerId;
-      const alreadyInLocal = !forceReschedule && localMap[timerKey] === timerId;
+      const specPrefix = `${item.id}_${targetAt}_${devShort}`;
+      const cloudId = cloudDocs?.[timerKey]?.id;
+      const localId = localMap[timerKey];
+      const alreadyInCloud = !forceReschedule && matchesArmedTimerSpec(cloudId, specPrefix);
+      const alreadyInLocal = !forceReschedule && !cloudDocs && matchesArmedTimerSpec(localId, specPrefix);
       if (alreadyInCloud || alreadyInLocal) {
-        localMap[timerKey] = timerId;
+        localMap[timerKey] = cloudId || localId || specPrefix;
         armedAny = true;
         continue;
       }
+      const timerId = `${specPrefix}__${randomToken(6)}`;
       try {
         const vapid = await signVapid(sub.endpoint, expSec);
         const bodyB64 = await encryptWebPush(sub.keys, payload);
@@ -2117,6 +2146,7 @@
         });
         if (r.ok) {
           localMap[timerKey] = timerId;
+          if (cloudDocs) cloudDocs[timerKey] = { id: timerId };
           armedAny = true;
         }
       } catch {}
@@ -2163,6 +2193,9 @@
     taskScheduleInFlight = true;
     let count = 0;
     try {
+      if (!cloudDocs) {
+        cloudDocs = await fetchCloudDocsSnapshot();
+      }
       const now = Date.now();
       const candidates = state.reminders.filter((r) => {
         if (!r || !r.id || r.completed || r.deleted) return false;
@@ -2616,8 +2649,8 @@
             const isPrayer = Boolean(payload.openPrayer || payload.tab === 'prayers');
             reg.showNotification(payload.title || 'Planner', {
               body: payload.body || '',
-              icon: './icon-192.png?v=19',
-              badge: './icon-192.png?v=19',
+              icon: './icon-192.png?v=21',
+              badge: './icon-192.png?v=21',
               tag: payload.tag || 'theo-cmd-notif',
               renotify: false,
               requireInteraction: Boolean(payload.requireInteraction),
@@ -2805,6 +2838,9 @@
     prayerScheduleInFlight = true;
     let scheduledCount = 0;
     try {
+      if (!cloudDocs) {
+        cloudDocs = await fetchCloudDocsSnapshot();
+      }
       let localMap = {};
       if (!forceReschedule) {
         try {
@@ -2830,16 +2866,41 @@
               .replace(/[^a-zA-Z0-9]/g, '')
               .slice(-12);
 
+            const preTimerKey = `prayer_d${dow}_pre_${p.id}_${devShort}`;
+            const timerKey = `prayer_d${dow}_${p.id}_${devShort}`;
+
+            if (!p.enabled) {
+              delete localMap[preTimerKey];
+              delete localMap[timerKey];
+              const cancelPatch = {};
+              if (cloudDocs?.[preTimerKey]?.id && cloudDocs[preTimerKey].id !== 'cancelled') {
+                cancelPatch[preTimerKey] = { id: 'cancelled', updatedAt: new Date().toISOString() };
+              }
+              if (cloudDocs?.[timerKey]?.id && cloudDocs[timerKey].id !== 'cancelled') {
+                cancelPatch[timerKey] = { id: 'cancelled', updatedAt: new Date().toISOString() };
+              }
+              if (Object.keys(cancelPatch).length > 0) {
+                fetch(CLOUD_URL, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
+                  body: JSON.stringify({ key: CLOUD_KEY, op: 'patch', patch: cancelPatch })
+                }).catch(() => {});
+              }
+              continue;
+            }
+
             // A) Optional Pre-Prayer Reminder
             if (cfg.preRemindMin > 0 && p.enabled) {
               const preTargetMs = p.epochMs - cfg.preRemindMin * 60000;
               const preDelaySec = Math.round((preTargetMs - nowMs) / 1000);
               if (preDelaySec >= 10 && preDelaySec <= 4 * 86400) {
-                const preTimerKey = `prayer_d${dow}_pre_${p.id}_${devShort}`;
-                const preTimerId = `${iso}_pre_${p.id}_${preTargetMs}`;
-                const alreadyInCloud = cloudDocs && cloudDocs[preTimerKey]?.id === preTimerId;
-                const alreadyInLocal = !forceReschedule && localMap[preTimerKey] === preTimerId;
+                const preSpecPrefix = `${iso}_pre_${p.id}_${preTargetMs}`;
+                const cloudPreId = cloudDocs?.[preTimerKey]?.id;
+                const localPreId = localMap[preTimerKey];
+                const alreadyInCloud = !forceReschedule && matchesArmedTimerSpec(cloudPreId, preSpecPrefix);
+                const alreadyInLocal = !forceReschedule && !cloudDocs && matchesArmedTimerSpec(localPreId, preSpecPrefix);
                 if (!alreadyInCloud && !alreadyInLocal) {
+                  const preTimerId = `${preSpecPrefix}__${randomToken(6)}`;
                   const expSec = Math.floor(preTargetMs / 1000) + 12 * 3600;
                   const vapid = await signVapid(sub.endpoint, expSec);
                   const bodyB64 = await encryptWebPush(sub.keys, {
@@ -2866,6 +2927,7 @@
                   });
                   if (r.ok) {
                     localMap[preTimerKey] = preTimerId;
+                    if (cloudDocs) cloudDocs[preTimerKey] = { id: preTimerId };
                     scheduledCount++;
                     try {
                       localStorage.setItem(PRAYER_SCHED_KEY, JSON.stringify(localMap));
@@ -2873,7 +2935,7 @@
                     await new Promise((res) => setTimeout(res, 250));
                   }
                 } else {
-                  localMap[preTimerKey] = preTimerId;
+                  localMap[preTimerKey] = cloudPreId || localPreId || preSpecPrefix;
                   scheduledCount++;
                 }
               }
@@ -2882,12 +2944,14 @@
             // B) Exact Prayer Time Notification
             const delaySec = Math.round((p.epochMs - nowMs) / 1000);
             if (delaySec >= 5 && delaySec <= 4 * 86400 && p.enabled) {
-              const timerKey = `prayer_d${dow}_${p.id}_${devShort}`;
-              const timerId = `${iso}_${p.id}_${p.epochMs}`;
-              const alreadyInCloud = cloudDocs && cloudDocs[timerKey]?.id === timerId;
-              const alreadyInLocal = !forceReschedule && localMap[timerKey] === timerId;
+              const specPrefix = `${iso}_${p.id}_${p.epochMs}`;
+              const cloudId = cloudDocs?.[timerKey]?.id;
+              const localId = localMap[timerKey];
+              const alreadyInCloud = !forceReschedule && matchesArmedTimerSpec(cloudId, specPrefix);
+              const alreadyInLocal = !forceReschedule && !cloudDocs && matchesArmedTimerSpec(localId, specPrefix);
 
               if (!alreadyInCloud && !alreadyInLocal) {
+                const timerId = `${specPrefix}__${randomToken(6)}`;
                 const expSec = Math.floor(p.epochMs / 1000) + 12 * 3600;
                 const vapid = await signVapid(sub.endpoint, expSec);
                 const bodyB64 = await encryptWebPush(sub.keys, {
@@ -2914,6 +2978,7 @@
                 });
                 if (r.ok) {
                   localMap[timerKey] = timerId;
+                  if (cloudDocs) cloudDocs[timerKey] = { id: timerId };
                   scheduledCount++;
                   try {
                     localStorage.setItem(PRAYER_SCHED_KEY, JSON.stringify(localMap));
@@ -2921,7 +2986,7 @@
                   await new Promise((res) => setTimeout(res, 250));
                 }
               } else {
-                localMap[timerKey] = timerId;
+                localMap[timerKey] = cloudId || localId || specPrefix;
                 scheduledCount++;
               }
             }
@@ -3119,15 +3184,37 @@
     );
   }
 
+  function buildPrayerScheduleSignature(cfg) {
+    const c = normalizePrayerConfig(cfg);
+    const s = computeShiaPrayerTimesForDate(todayIso(), c);
+    return [
+      c.enabled ? '1' : '0',
+      c.method,
+      c.timeZone,
+      c.preRemindMin,
+      c.notifyFajr ? '1' : '0',
+      c.notifyDhuhr ? '1' : '0',
+      c.notifyMaghrib ? '1' : '0',
+      s.fajr?.time24 || '',
+      s.dhuhr?.time24 || '',
+      s.maghrib?.time24 || ''
+    ].join('|');
+  }
+
   function updatePrayerConfig(patch) {
-    state.prayerConfig = normalizePrayerConfig({
+    const prevSig = buildPrayerScheduleSignature(state.prayerConfig);
+    const nextCfg = normalizePrayerConfig({
       ...state.prayerConfig,
       ...patch,
       updatedAt: Date.now()
     });
+    const nextSig = buildPrayerScheduleSignature(nextCfg);
+    state.prayerConfig = nextCfg;
     saveLocalState();
     renderAll();
-    scheduleUpcomingPrayerCloudPushes(null, true).catch(() => {});
+    if (prevSig !== nextSig) {
+      scheduleUpcomingPrayerCloudPushes(null, false).catch(() => {});
+    }
     syncAll().catch(() => {});
   }
 
@@ -8557,7 +8644,7 @@
         }
       });
       navigator.serviceWorker
-        .register('./sw.js?v=18', { updateViaCache: 'none' })
+        .register('./sw.js?v=21', { updateViaCache: 'none' })
         .then(async (reg) => {
           reg.update().catch(() => {});
           if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });

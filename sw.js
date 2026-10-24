@@ -1,19 +1,19 @@
-/* Planner — Standalone Executive & Personal PWA for Planning, Tasks, Delegation, 100% Score & Shia Prayer Times (Service Worker v20) */
-const CACHE_NAME = 'bhf-planner-v20';
+/* Planner — Standalone Executive & Personal PWA for Planning, Tasks, Delegation, 100% Score & Shia Prayer Times (Service Worker v21) */
+const CACHE_NAME = 'bhf-planner-v21';
 const NAV_CACHE = 'theo-cmd-nav-handoff-v1';
 const PENDING_NAV_URL = './__theo_cmd_pending_nav.json';
 const UNREAD_NOTIFS_URL = './__theo_cmd_unread_notifs.json';
 const APP_SHELL = [
   './',
   './index.html',
-  './css/command.css?v=20',
-  './js/endpoints.js?v=20',
-  './js/app.js?v=20',
-  './manifest.json?v=20',
-  './icon.svg?v=20',
-  './icon-180.png?v=20',
-  './icon-192.png?v=20',
-  './icon-512.png?v=20'
+  './css/command.css?v=21',
+  './js/endpoints.js?v=21',
+  './js/app.js?v=21',
+  './manifest.json?v=21',
+  './icon.svg?v=21',
+  './icon-180.png?v=21',
+  './icon-192.png?v=21',
+  './icon-512.png?v=21'
 ];
 
 self.addEventListener('install', (event) => {
@@ -83,8 +83,8 @@ function buildNotifOptions(d, isRepeat = false) {
   const nav = buildCmdDeepLink(d);
   return {
     body: d.body || 'Tap to open Planner.',
-    icon: './icon-192.png?v=20',
-    badge: './icon-192.png?v=20',
+    icon: './icon-192.png?v=21',
+    badge: './icon-192.png?v=21',
     tag: d.tag || 'theo-cmd-notif',
     renotify: !isRepeat,
     silent: Boolean(isRepeat),
@@ -176,6 +176,34 @@ function isCommandClientUrl(rawUrl) {
   }
 }
 
+const recentDeliveredByKey = new Map();
+const recentCanonicalTagByTitle = new Map();
+let pushHandlingChain = Promise.resolve();
+
+function checkAndMarkInMemoryNotif(tag, title = '') {
+  const cleanTag = String(tag || '').trim();
+  const cleanTitle = String(title || '').trim();
+  const now = Date.now();
+  for (const [k, ts] of recentDeliveredByKey.entries()) {
+    if (now - ts > 15 * 60 * 1000) recentDeliveredByKey.delete(k);
+  }
+  let hit = false;
+  if (cleanTag) {
+    const prevTagTs = recentDeliveredByKey.get(`tag:${cleanTag}`) || 0;
+    if (prevTagTs && now - prevTagTs < 10 * 60 * 1000) hit = true;
+    recentDeliveredByKey.set(`tag:${cleanTag}`, now);
+  }
+  if (cleanTitle) {
+    const prevTitleTs = recentDeliveredByKey.get(`title:${cleanTitle}`) || 0;
+    if (prevTitleTs && now - prevTitleTs < 90 * 1000) hit = true;
+    recentDeliveredByKey.set(`title:${cleanTitle}`, now);
+    if (!hit && cleanTag) {
+      recentCanonicalTagByTitle.set(cleanTitle, cleanTag);
+    }
+  }
+  return hit;
+}
+
 async function isTagRecentlyDelivered(tag, title = '') {
   const cleanTag = String(tag || '').trim();
   const cleanTitle = String(title || '').trim();
@@ -214,11 +242,16 @@ self.addEventListener('push', (event) => {
     }
   }
   const title = d.title || 'Planner';
-  event.waitUntil(
-    (async () => {
-      const isRepeat = await isTagRecentlyDelivered(d.tag, title);
-      const opts = buildNotifOptions(d, isRepeat);
-      const { item, unreadCount } = await upsertSwUnreadNotif(d, opts.data);
+  const syncRepeat = checkAndMarkInMemoryNotif(d.tag, title);
+  const runTask = async () => {
+    const cacheRepeat = syncRepeat || (await isTagRecentlyDelivered(d.tag, title));
+    const canonicalTag =
+      (cacheRepeat && recentCanonicalTagByTitle.get(String(title).trim())) ||
+      d.tag ||
+      'theo-cmd-notif';
+    const opts = buildNotifOptions({ ...d, tag: canonicalTag }, cacheRepeat);
+    const { item, unreadCount } = await upsertSwUnreadNotif({ ...d, tag: canonicalTag }, opts.data);
+    if (!cacheRepeat) {
       const list = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
       list.filter((c) => isCommandClientUrl(c.url)).forEach((c) => {
         try {
@@ -230,10 +263,12 @@ self.addEventListener('push', (event) => {
           });
         } catch {}
       });
-      // Always call showNotification on push (never return early on iOS webpushd), coalescing silently if repeat
-      await self.registration.showNotification(title, opts);
-    })()
-  );
+    }
+    // Always call showNotification on push (never return early on iOS webpushd), coalescing silently onto canonicalTag if repeat
+    await self.registration.showNotification(title, opts);
+  };
+  pushHandlingChain = pushHandlingChain.then(runTask, runTask);
+  event.waitUntil(pushHandlingChain);
 });
 
 self.addEventListener('message', (event) => {
@@ -270,15 +305,17 @@ self.addEventListener('message', (event) => {
   }
   if (m.type === 'show-notification') {
     const d = m.payload || {};
+    const title = d.title || 'Planner';
+    const syncRepeat = checkAndMarkInMemoryNotif(d.tag, title);
     event.waitUntil(
       (async () => {
-        const isRepeat = await isTagRecentlyDelivered(d.tag, d.title);
+        const isRepeat = syncRepeat || (await isTagRecentlyDelivered(d.tag, title));
         const opts = buildNotifOptions(d, isRepeat);
         if (!m.skipUnread) {
           await upsertSwUnreadNotif(d, opts.data);
         }
         if (isRepeat) return;
-        await self.registration.showNotification(d.title || 'Planner', opts);
+        await self.registration.showNotification(title, opts);
       })()
     );
   }
